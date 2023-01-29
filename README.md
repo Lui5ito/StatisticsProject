@@ -8,3 +8,4 @@ Le premier est celui qui a fait marcher la connexion à GitHub sur Mac. A voir s
 Besoin des packages "usethis" et "gitcreds".
 
 TOKEN Louis : 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
+jhb

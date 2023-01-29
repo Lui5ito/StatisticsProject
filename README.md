@@ -6,3 +6,5 @@ Pour se connecter à GitHub, deux liens:
 2- https://www.r-bloggers.com/2014/05/rstudio-pushing-to-github-with-ssh-authentication/
 Le premier est celui qui a fait marcher la connexion à GitHub sur Mac. A voir si ca marche aussi sur Windows.
 Besoin des packages "usethis" et "gitcreds".
+
+TOKEN Louis : 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

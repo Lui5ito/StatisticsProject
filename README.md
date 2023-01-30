@@ -8,3 +8,4 @@ Le premier est celui qui a fait marcher la connexion à GitHub sur Mac. A voir s
 Besoin des packages "usethis" et "gitcreds".
 
 albert
+Lucas

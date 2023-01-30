@@ -25,12 +25,12 @@ summary(sum_gene_df)
 apply(sum_gene_df)
 
 freq_table <- as.data.frame(ftable(as.data.frame(colSums(gene_expression))))
-
+freq_table$colSums.gene_expression.
 
 
 plot(freq_table)
 
-ggplot(freq_table[26:nrow(freq_table),], aes(x = as.numeric(x), y = Freq)) + 
+ggplot(freq_table, aes(x = as.numeric(colSums.gene_expression.), y = Freq)) + 
   geom_point() +
   scale_x_continuous(trans='log10') +
   geom_jitter()

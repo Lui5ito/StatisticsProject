@@ -67,3 +67,52 @@ classe <- predict(fit)
 
 # Afficher les probabilités latentes pour chaque observation
 probas <- predict(fit, what = "probabilities")
+
+fit3 <- VarSelCluster(sum_gene_df, g=3)
+summary(fit3)
+head(fit3@partitions@tik)
+fit3@param@pi
+plot(fit3, type="probs-class")
+
+
+# Modèle de mélange
+
+fit <- normalmixEM(sum_gene_df$nb_transcrit, k = 3)
+
+classify <- function(x, means, variances, prior_probs) {
+  prob <- matrix(0, nrow = 327395, ncol = 3)
+  for (i in 1:327395) {
+    for (j in 1:3) {
+      if (j == 2) {
+        prob[i, j] <- dpois(x[i], lambda = means[j]) * prior_probs[j]
+      } 
+      if (j == 1) {
+        prob[i, j] <- dlnorm(x[i], meanlog = means[j], sdlog=variances[j]) * prior_probs[j]
+      } 
+      if (j == 3) {
+        prob[i, j] <- dlnorm(x[i], meanlog = 2*means[j], sdlog=variances[j]) * prior_probs[j]
+      } 
+    }
+  }
+  class <- apply(prob, 1, which.max)
+  return(class)
+}
+fit$lambda
+fit$mu
+fit$sigma
+
+# Attribution des classes à chaque observation
+cluster_assignment <- classify(sum_gene_df$nb_transcrit, fit$mu, fit$sigma, fit$lambda)
+
+df_avec_classe <- data.frame(sum_gene_df, cluster_assignment)
+
+# Modification des paramètres pour respecter les lois souhaitées
+fit$lambda[1] <- fit$mu[1]
+fit$sigma[2:3] <- 1
+
+# Vérification de la qualité de l'ajustement
+plot(density(sum_gene_df$nb_transcrit), xlim = range(sum_gene_df$nb_transcrit))
+lines(density(dnorm(sum_gene_df$nb_transcrit, mean = fit$mu[1], sd = fit$sigma[1])), col = "red")
+lines(density(dpois(sum_gene_df$nb_transcrit, lambda = fit$lambda[1])), col = "red")
+lines(density(dnorm(sum_gene_df$nb_transcrit, mean = fit$mu[2], sd = fit$sigma[2])), col = "blue")
+lines(density(dnorm(sum_gene_df$nb_transcrit, mean = fit$mu[3], sd = fit$sigma[3])), col = "green")

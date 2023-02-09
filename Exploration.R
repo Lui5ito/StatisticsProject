@@ -4,11 +4,16 @@ library(dplyr)
 library(ggplot2)
 
 #On récupère les données fournies
-data <- Read10X_h5("raw_feature_bc_matrix.D7.h5")
+#data <- Read10X_h5("raw_feature_bc_matrix.D7.h5")
 
 #Les données sont sous formes d'une "liste" de matrices. On les extraits. 
-gene_expression <- data$`Gene Expression`
-antibody_capture <- data$`Antibody Capture`
+#gene_expression <- data$`Gene Expression`
+#antibody_capture <- data$`Antibody Capture`
+#save(gene_expression, file = "gene_expression.RData")
+#save(antibody_capture, file = "antibody_capture.RData")
+
+load("gene_expression.RData")
+load("antibody_capture.RData")
 
 #Mais ce sont encore des objet particulier. On ne peut pas les trasnformer en dataframe car les matrices sont trop grosses.
 summary(gene_expression)

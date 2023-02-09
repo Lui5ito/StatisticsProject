@@ -16,6 +16,8 @@ load("gene_expression.RData")
 load("antibody_capture.RData")
 
 #Mais ce sont encore des objet particulier. On ne peut pas les trasnformer en dataframe car les matrices sont trop grosses.
+#Ici ça explique comment gérer un objetdgCMatrix : https://www.r-bloggers.com/2020/03/what-is-a-dgcmatrix-object-made-of-sparse-matrix-format-in-r/
+
 summary(gene_expression)
 str(gene_expression)
 summary(gene_expression@i)

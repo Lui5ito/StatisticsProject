@@ -66,17 +66,9 @@ sum_gene_df <- as.data.frame(colSums(gene_expression)) %>%
 
 summary(sum_gene_df)
 
-#Marche pas
-ggplot(sum_gene_df, aes(x = nb_transcrit)) + 
-  geom_boxplot()
-boxplot(sum_gene_df)
-apply(sum_gene_df)
-#aMarche pas
-
 #On veut récuperer les fréquences des goutelettes qui ont x transcrits
 freq_table <- as.data.frame(ftable(as.data.frame(colSums(gene_expression))))
 
-plot(freq_table)
 
 #On plot sur une échelle logarithmique le nombre de goutelettes qui ont le même nombre de transcrit.
 #Logarithmique car le nombre de transcrit commence à 0 et peut aller à plusieurs milliers.

@@ -18,14 +18,28 @@ load("antibody_capture.RData")
 #Mais ce sont encore des objet particulier. On ne peut pas les trasnformer en dataframe car les matrices sont trop grosses.
 #Ici ça explique comment gérer un objetdgCMatrix : https://www.r-bloggers.com/2020/03/what-is-a-dgcmatrix-object-made-of-sparse-matrix-format-in-r/
 
+as.data.frame(gene_expression[c(1:3), c(1:3)])
 summary(gene_expression)
 str(gene_expression)
-summary(gene_expression@i)
-summary(gene_expression@p)
-summary(gene_expression@Dim)
+
+#Liste de toutes les non-zéros valeures.
+gene_expression@x
 summary(gene_expression@x)
-summary(gene_expression@Dimnames)
-summary(gene_expression@factors)
+
+#Renvoie le numéro de la ligne de chaque valeure non-zéro. (Correspondance avec x)
+gene_expression@i
+summary(gene_expression@i)
+
+#Liste de taille le nombre de colonne, et renvoie le nombre de non-zéro par colonne (en faisant la différence, cf le site)
+gene_expression@p
+summary(gene_expression@p)
+
+#Nombre de lignes et nombre de colonnes
+gene_expression@Dim
+
+#Donne le nom des lignes s'ils existent et le nom des colonnes s'ils existent
+gene_expression@Dimnames
+
 
 #####On peut commencer par extraire une 'sous' matrice de gene_expression pour l'analyser. Mais il va falloir trouver une manière de faire des GLM, modèles de mélanges sur des dgCMatrix. Voir package 'Matrix' et 'glmnet'.
 #Pour l'instant la matrice qui nous intéresse c'est gene_expression. C'est la qu'on trouve l'information des goutelettes.

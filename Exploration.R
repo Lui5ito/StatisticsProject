@@ -47,7 +47,7 @@ nrow_genes <- gene_expression@Dimnames[[1]] %>% length() %>% as.numeric()
 as.data.frame(gene_expression@Dimnames[[2]]) %>% slice(1:50) %>% View()
 ncol_genes <- gene_expression@Dimnames[[2]] %>% length() %>% as.numeric()
 
-
+tetstttt
 #####On peut commencer par extraire une 'sous' matrice de gene_expression pour l'analyser. Mais il va falloir trouver une manière de faire des GLM, modèles de mélanges sur des dgCMatrix. Voir package 'Matrix' et 'glmnet'.
 #Pour l'instant la matrice qui nous intéresse c'est gene_expression. C'est la qu'on trouve l'information des goutelettes.
 

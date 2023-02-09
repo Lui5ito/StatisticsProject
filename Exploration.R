@@ -52,8 +52,8 @@ ncol_genes <- gene_expression@Dimnames[[2]] %>% length() %>% as.numeric()
 #####On peut commencer par extraire une 'sous' matrice de gene_expression pour l'analyser. Mais il va falloir trouver une manière de faire des GLM, modèles de mélanges sur des dgCMatrix. Voir package 'Matrix' et 'glmnet'.
 #Pour l'instant la matrice qui nous intéresse c'est gene_expression. C'est la qu'on trouve l'information des goutelettes.
 
-gene_expression_df <- as.data.frame(gene_expression[c(1:300), c(1:50)])
-
+gene_expression_df <- as.data.frame(gene_expression[c(1:200), c(1:50)])
+save(gene_expression_df, file = "gene_expresssion_df.RData")
 summary(gene_expression_df)
 
 #Ici on veut calculer le nombre de transcrit par goutelette.

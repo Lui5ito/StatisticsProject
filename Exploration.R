@@ -54,7 +54,8 @@ ncol_genes <- gene_expression@Dimnames[[2]] %>% length() %>% as.numeric()
 
 
 gene_expression_df <- as.data.frame(gene_expression[c(1:200), c(1:50)])
-save(gene_expression_df, file = "gene_expresssion_df.RData")
+#save(gene_expression_df, file = "gene_expresssion_df.RData")
+load("gene_expresssion_df.RData")
 
 summary(gene_expression_df)
 

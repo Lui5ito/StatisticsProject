@@ -53,11 +53,6 @@ ncol_genes <- gene_expression@Dimnames[[2]] %>% length() %>% as.numeric()
 #Pour l'instant la matrice qui nous intéresse c'est gene_expression. C'est la qu'on trouve l'information des goutelettes.
 
 
-gene_expression_df <- as.data.frame(gene_expression[c(1:200), c(1:50)])
-save(gene_expression_df, file = "gene_expresssion_df.RData")
-
-summary(gene_expression_df)
-
 #Ici on veut calculer le nombre de transcrit par goutelette.
 sum_gene_df <- as.data.frame(colSums(gene_expression)) %>% 
   rename("nb_transcrit" =`colSums(gene_expression)`) %>% 
@@ -65,17 +60,9 @@ sum_gene_df <- as.data.frame(colSums(gene_expression)) %>%
 
 summary(sum_gene_df)
 
-#Marche pas
-ggplot(sum_gene_df, aes(x = nb_transcrit)) + 
-  geom_boxplot()
-boxplot(sum_gene_df)
-apply(sum_gene_df)
-#aMarche pas
-
 #On veut récuperer les fréquences des goutelettes qui ont x transcrits
 freq_table <- as.data.frame(ftable(as.data.frame(colSums(gene_expression))))
 
-plot(freq_table)
 
 #On plot sur une échelle logarithmique le nombre de goutelettes qui ont le même nombre de transcrit.
 #Logarithmique car le nombre de transcrit commence à 0 et peut aller à plusieurs milliers.

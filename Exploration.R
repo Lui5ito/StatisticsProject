@@ -72,7 +72,7 @@ freq_table <- as.data.frame(ftable(as.data.frame(colSums(gene_expression))))
 
 #On plot sur une échelle logarithmique le nombre de goutelettes qui ont le même nombre de transcrit.
 #Logarithmique car le nombre de transcrit commence à 0 et peut aller à plusieurs milliers.
-ggplot(freq_table, aes(x = as.numeric(colSums.gene_expression.), y = Freq)) + 
+ggplot(freq_table, aes(x = as.numeric(x), y = Freq)) + 
   geom_point() +
   scale_x_continuous(trans='log10') +
   geom_jitter()

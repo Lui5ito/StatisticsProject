@@ -47,17 +47,9 @@ nrow_genes <- gene_expression@Dimnames[[1]] %>% length() %>% as.numeric()
 as.data.frame(gene_expression@Dimnames[[2]]) %>% slice(1:50) %>% View()
 ncol_genes <- gene_expression@Dimnames[[2]] %>% length() %>% as.numeric()
 
-# NIQUE TA MERE LE C++
 
-#####On peut commencer par extraire une 'sous' matrice de gene_expression pour l'analyser. Mais il va falloir trouver une manière de faire des GLM, modèles de mélanges sur des dgCMatrix. Voir package 'Matrix' et 'glmnet'.
 #Pour l'instant la matrice qui nous intéresse c'est gene_expression. C'est la qu'on trouve l'information des goutelettes.
 
-
-gene_expression_df <- as.data.frame(gene_expression[c(1:200), c(1:50)])
-#save(gene_expression_df, file = "gene_expresssion_df.RData")
-load("gene_expresssion_df.RData")
-
-summary(gene_expression_df)
 
 #Ici on veut calculer le nombre de transcrit par goutelette.
 sum_gene_df <- as.data.frame(colSums(gene_expression)) %>% 
@@ -68,12 +60,14 @@ summary(sum_gene_df)
 
 #On veut récuperer les fréquences des goutelettes qui ont x transcrits
 freq_table <- as.data.frame(ftable(as.data.frame(colSums(gene_expression))))
-
+colnames(freq_table)[colnames(freq_table) == 'colSums.gene_expression.'] <- 'Nombre_de_goutelettes_qui_ont_le_même_nombre_de_transcrits'
+colnames(freq_table)[colnames(freq_table) == 'Freq'] <- 'Nombre_de_transcrits'
 
 #On plot sur une échelle logarithmique le nombre de goutelettes qui ont le même nombre de transcrit.
 #Logarithmique car le nombre de transcrit commence à 0 et peut aller à plusieurs milliers.
-ggplot(freq_table, aes(x = as.numeric(x), y = Freq)) + 
+ggplot(freq_table, aes(x = as.numeric(Nombre_de_goutelettes_qui_ont_le_même_nombre_de_transcrits), y = Nombre_de_transcrits)) + 
   geom_point() +
   scale_x_continuous(trans='log10') +
-  geom_jitter()
+  geom_jitter() +
+  labs(title = 'Nombre de transcrits par goutelettes en fonctions des goutelettes qui ont le même nombre de transcrits',subtitle = 'Echelle logarithmique en abscisse', x = 'Nombre de goutelettes qui ont le même nombre de transcrit.', y = 'Nombre de transcrits dans ces goutelettes')
 

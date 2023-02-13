@@ -106,9 +106,7 @@ cluster_assignment <- classify(sum_gene_df$nb_transcrit, fit$mu, fit$sigma, fit$
 
 df_avec_classe <- data.frame(sum_gene_df, cluster_assignment)
 
-# Modification des paramètres pour respecter les lois souhaitées
-fit$lambda[1] <- fit$mu[1]
-fit$sigma[2:3] <- 1
+range(df_avec_classe$nb_transcrit)
 
 # Vérification de la qualité de l'ajustement
 plot(density(sum_gene_df$nb_transcrit), xlim = range(sum_gene_df$nb_transcrit))

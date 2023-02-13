@@ -59,10 +59,17 @@ sum_gene_df <- as.data.frame(colSums(gene_expression)) %>%
 
 plot(sum_gene_df$nb_transcrit)
 
+str(sum_gene_df)
+summary(sum_gene_df)
+
+ggplot(sum_gene_df, aes(x = c(1:327395), y = nb_transcrit)) +
+  geom_point() +
+  scale_x_continuous(trans='log10') +
+  scale_y_continuous(trans='log10') +
+  geom_jitter()
+  
+
 nb_transcrit <- as.data.frame(gene_expression@x)
-
-df[order(df$var1), ]
-
 
 group_nb_transcrit <- as.data.frame(table(as.character(nb_transcrit$`gene_expression@x`)))
 group_nb_transcrit$Var1 <- as.numeric(group_nb_transcrit$Var1)

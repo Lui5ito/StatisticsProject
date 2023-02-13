@@ -133,9 +133,7 @@ ggplot(df_avec_classe_avec_moyenne_voulue_2n, aes(x = as.factor(cluster_assignme
   scale_fill_manual(values = c("#E69F00", "#56B4E9", "#009E73"))
 
 
-# Modification des paramètres pour respecter les lois souhaitées
-fit$lambda[1] <- fit$mu[1]
-fit$sigma[2:3] <- 1
+range(df_avec_classe$nb_transcrit)
 
 # Vérification de la qualité de l'ajustement
 plot(density(sum_gene_df$nb_transcrit), xlim = range(sum_gene_df$nb_transcrit))

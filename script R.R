@@ -76,23 +76,36 @@ plot(fit3, type="probs-class")
 
 
 # Modèle de mélange
-
+library(mixtools)
 fit <- normalmixEM(sum_gene_df$nb_transcrit, k = 3)
 
-classify <- function(x, means, variances, prior_probs) {
+classify_avec_moyenne_du_modèle <- function(x, means, variances, prior_probs) {
   prob <- matrix(0, nrow = 327395, ncol = 3)
   for (i in 1:327395) {
-    for (j in 1:3) {
-      if (j == 2) {
-        prob[i, j] <- dpois(x[i], lambda = means[j]) * prior_probs[j]
-      } 
-      if (j == 1) {
-        prob[i, j] <- dlnorm(x[i], meanlog = means[j], sdlog=variances[j]) * prior_probs[j]
-      } 
-      if (j == 3) {
-        prob[i, j] <- dlnorm(x[i], meanlog = 2*means[j], sdlog=variances[j]) * prior_probs[j]
-      } 
+    #On calcul la proba d'être dans la classe 2, ie. de suivre une loi de Poisson.
+    prob[i, 2] <- dpois(x[i], lambda = means[2]) * prior_probs[2]
+    
+    #On calcul la proba d'être dans la classe 1, ie. de suivre une normale de moyenne n
+    prob[i, 1] <- dlnorm(x[i], meanlog = means[1], sdlog=variances[1]) * prior_probs[1]
+    
+    #On calcul la proba d'être dans la classe 3, ie. de suivre une normale de moyenne 2n idéalement.
+    prob[i, 3] <- dlnorm(x[i], meanlog = 2*means[3], sdlog=variances[3]) * prior_probs[3]
     }
+  class <- apply(prob, 1, which.max)
+  return(class)
+}
+
+classify_avec_moyenne_voulue_2n <- function(x, means, variances, prior_probs) {
+  prob <- matrix(0, nrow = 327395, ncol = 3)
+  for (i in 1:327395) {
+    #On calcul la proba d'être dans la classe 2, ie. de suivre une loi de Poisson.
+    prob[i, 2] <- dpois(x[i], lambda = means[2]) * prior_probs[2]
+    
+    #On calcul la proba d'être dans la classe 1, ie. de suivre une normale de moyenne n
+    prob[i, 1] <- dlnorm(x[i], meanlog = means[1], sdlog=variances[1]) * prior_probs[1]
+    
+    #On calcul la proba d'être dans la classe 3, ie. de suivre une normale de moyenne 2n idéalement.
+    prob[i, 3] <- dlnorm(x[i], meanlog = 2*means[1], sdlog=variances[3]) * prior_probs[3]
   }
   class <- apply(prob, 1, which.max)
   return(class)
@@ -102,9 +115,23 @@ fit$mu
 fit$sigma
 
 # Attribution des classes à chaque observation
-cluster_assignment <- classify(sum_gene_df$nb_transcrit, fit$mu, fit$sigma, fit$lambda)
+cluster_assignment_avec_moyenne_du_modèle <- classify_avec_moyenne_du_modèle(sum_gene_df$nb_transcrit, fit$mu, fit$sigma, fit$lambda)
+df_avec_classe_avec_moyenne_du_modèle <- data.frame(sum_gene_df, cluster_assignment_avec_moyenne_du_modèle)
 
-df_avec_classe <- data.frame(sum_gene_df, cluster_assignment)
+summary(df_avec_classe_avec_moyenne_du_modèle)
+ggplot(df_avec_classe_avec_moyenne_du_modèle, aes(x = as.factor(cluster_assignment_avec_moyenne_du_modèle), y = nb_transcrit)) +
+  geom_violin(aes(fill = as.factor(cluster_assignment_avec_moyenne_du_modèle)), trim = FALSE) +
+  scale_fill_manual(values = c("#E69F00", "#56B4E9", "#009E73"))
+
+
+cluster_assignment_avec_moyenne_voulue_2n <- classify_avec_moyenne_voulue_2n(sum_gene_df$nb_transcrit, fit$mu, fit$sigma, fit$lambda)
+df_avec_classe_avec_moyenne_voulue_2n <- data.frame(sum_gene_df, cluster_assignment_avec_moyenne_voulue_2n)
+
+summary(df_avec_classe_avec_moyenne_voulue_2n)
+ggplot(df_avec_classe_avec_moyenne_voulue_2n, aes(x = as.factor(cluster_assignment_avec_moyenne_voulue_2n), y = nb_transcrit)) +
+  geom_violin(aes(fill = as.factor(cluster_assignment_avec_moyenne_voulue_2n)), trim = FALSE) +
+  scale_fill_manual(values = c("#E69F00", "#56B4E9", "#009E73"))
+
 
 # Modification des paramètres pour respecter les lois souhaitées
 fit$lambda[1] <- fit$mu[1]

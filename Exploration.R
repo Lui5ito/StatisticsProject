@@ -25,6 +25,7 @@ str(gene_expression)
 #Liste de toutes les non-zéros valeures.
 gene_expression@x
 summary(gene_expression@x)
+str(gene_expression@x)
 
 #Renvoie le numéro de la ligne de chaque valeure non-zéro. (Correspondance avec x)
 gene_expression@i
@@ -56,7 +57,31 @@ sum_gene_df <- as.data.frame(colSums(gene_expression)) %>%
   rename("nb_transcrit" =`colSums(gene_expression)`) %>% 
   filter(nb_transcrit != 0)
 
+plot(sum_gene_df$nb_transcrit)
+
+nb_transcrit <- as.data.frame(gene_expression@x)
+
+df[order(df$var1), ]
+
+
+group_nb_transcrit <- as.data.frame(table(as.character(nb_transcrit$`gene_expression@x`)))
+group_nb_transcrit$Var1 <- as.numeric(group_nb_transcrit$Var1)
+group_nb_transcrit <- group_nb_transcrit[order(group_nb_transcrit$Var1), ]
+group_nb_transcrit <- group_nb_transcrit %>% slice(-1)
+plot(group_nb_transcrit)
+
+
+plot(nb_transcrit)
+
+group_gene_df <- table(nb_transcrit)
+
+plot(gene_expression@x)
+
 summary(sum_gene_df)
+library(pastecs)
+
+stat.desc(sum_gene_df$nb_transcrit, basic=TRUE, desc=TRUE, norm=FALSE, p=0.95)
+
 
 #On veut récuperer les fréquences des goutelettes qui ont x transcrits
 freq_table <- as.data.frame(ftable(as.data.frame(colSums(gene_expression))))
@@ -65,9 +90,16 @@ colnames(freq_table)[colnames(freq_table) == 'Freq'] <- 'Nombre_de_transcrits'
 
 #On plot sur une échelle logarithmique le nombre de goutelettes qui ont le même nombre de transcrit.
 #Logarithmique car le nombre de transcrit commence à 0 et peut aller à plusieurs milliers.
-ggplot(freq_table, aes(x = as.numeric(Nombre_de_goutelettes_qui_ont_le_même_nombre_de_transcrits), y = Nombre_de_transcrits)) + 
+ggplot(freq_table, aes(x = Nombre_de_transcrits, y = as.numeric(Nombre_de_goutelettes_qui_ont_le_même_nombre_de_transcrits))) + 
   geom_point() +
   scale_x_continuous(trans='log10') +
+  scale_y_continuous(trans='log10') +
   geom_jitter() +
   labs(title = 'Nombre de transcrits par goutelettes en fonctions des goutelettes qui ont le même nombre de transcrits',subtitle = 'Echelle logarithmique en abscisse', x = 'Nombre de goutelettes qui ont le même nombre de transcrit.', y = 'Nombre de transcrits dans ces goutelettes')
 
+sum_gene_df$classes <-case_when(log(sum_gene_df$nb_transcrit) > 1e+04 ~ 1,
+                                log(sum_gene_df$nb_transcrit) > 1e+01 & log(sum_gene_df$nb_transcrit) < 1e+04 ~ 2,
+                                log(sum_gene_df$nb_transcrit) <= 1e+01,
+                                .default = 0)
+
+summary(sum_gene_df$classes)

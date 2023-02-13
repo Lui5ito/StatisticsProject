@@ -57,14 +57,20 @@ sum_gene_df <- as.data.frame(colSums(gene_expression)) %>%
   rename("nb_transcrit" =`colSums(gene_expression)`) %>% 
   filter(nb_transcrit != 0)
 
+
 plot(sum_gene_df$nb_transcrit)
+plot(sum_gene_df$nb_transcrit, log='y')
+
+sum_gene_df_sans1 <- subset(sum_gene_df, nb_transcrit != 1)
+sum_gene_df_sans12 <- subset(sum_gene_df_sans1, nb_transcrit != 2)
+sum_gene_df_sans123 <- subset(sum_gene_df_sans12, nb_transcrit != 3)
+plot(sum_gene_df_sans123$nb_transcrit, log='y')
 
 str(sum_gene_df)
 summary(sum_gene_df)
 
-ggplot(sum_gene_df, aes(x = c(1:327395), y = nb_transcrit)) +
+ggplot(sum_gene_df, aes(x = nb_transcrit, y = c(1:327395))) +
   geom_point() +
-  scale_x_continuous(trans='log10') +
   scale_y_continuous(trans='log10') +
   geom_jitter()
   

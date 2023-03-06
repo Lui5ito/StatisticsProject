@@ -2,6 +2,7 @@ library(Seurat)
 library(hdf5r)
 library(dplyr)
 library(ggplot2)
+library(plotly)
 
 #On récupère les données fournies
 #data <- Read10X_h5("raw_feature_bc_matrix.D7.h5")
@@ -60,6 +61,77 @@ sum_gene_df <- as.data.frame(colSums(gene_expression)) %>%
 
 plot(sum_gene_df$nb_transcrit)
 plot(sum_gene_df$nb_transcrit, log='y')
+
+plot(sum_gene_df$nb_transcrit, log='y', ylim = c(2000, 10000))
+
+sum_gene_df$classe <- case_when(sum_gene_df$nb_transcrit < 2000 ~ "1",
+                                sum_gene_df$nb_transcrit >=2000 & sum_gene_df$nb_transcrit < 10000 ~ "2",
+                                sum_gene_df$nb_transcrit >= 10000 ~ "3")
+
+
+hist <- ggplot(sum_gene_df %>% 
+                        filter(nb_transcrit < 10000, nb_transcrit > 2000), aes(x = nb_transcrit, y = ..density..)) +
+  geom_histogram(aes(x = nb_transcrit), alpha = 0.8, color = "#66CCFF", fill = "lightblue") +
+  theme_bw() +
+  geom_density(aes(x = nb_transcrit), color = "red", linewidth = 0.666)
+
+
+
+
+sum_gene_df %>% 
+  filter(classe == 1) %>% 
+  summary()
+
+hist_group1 <- ggplot(sum_gene_df %>% 
+         filter(classe == 1) %>% 
+         filter(nb_transcrit > 25), aes(x = nb_transcrit, y = ..density..)) +
+         geom_histogram(aes(x = nb_transcrit), alpha = 0.8, color = "#66CCFF", fill = "lightblue") +
+  theme_bw() +
+  geom_density(aes(x = nb_transcrit), color = "red", linewidth = 0.666)
+
+#logL(lambda) = sum(i=1:n) (-lambda+sum_gene_df$nb_transcrit[i]*log(lambda) - log(sum_gene_df$nb_transcrit[i]!))
+
+logL <- function(lambda, x) {
+  sum(-lambda+x*log(lambda) - lfactorial(x))
+}
+enattendant <- sum_gene_df%>% 
+  filter(classe == 1) %>% 
+  filter(nb_transcrit > 25)
+
+estimation <- optim(par = 1, logL, x = enattendant$nb_transcrit, method = "Brent", lower = 0, upper = 10)
+lambda <- estimation$par
+lambda
+
+x_seq <- seq(0, max(enattendant$nb_transcrit), length.out = 100)
+y_pois <- dpois(x_seq, lambda)
+x <- rpois(1000000, lambda)
+hist(x)
+lines(x_seq, y_pois, col = "red", lwd = 2)
+
+
+sum_gene_df %>% 
+  filter(classe == 2) %>% 
+  summary()
+
+hist_group2 <- ggplot(sum_gene_df %>% 
+                        filter(classe == 2), aes(x = nb_transcrit, y = ..density..)) +
+  geom_histogram(aes(x = nb_transcrit), alpha = 0.8, color = "#66CCFF", fill = "lightblue") +
+  theme_bw() +
+  geom_density(aes(x = nb_transcrit), color = "red", linewidth = 0.666)
+
+sum_gene_df %>% 
+  filter(classe == 3) %>% 
+  summary()
+
+hist_group3 <- ggplot(sum_gene_df %>% 
+                        filter(classe == 3), aes(x = nb_transcrit, y = ..density..)) +
+  geom_histogram(aes(x = nb_transcrit), alpha = 0.8, color = "#66CCFF", fill = "lightblue") +
+  theme_bw() +
+  geom_density(aes(x = nb_transcrit), color = "red", linewidth = 0.666)
+
+
+
+str(sum_gene_df)
 
 sum_gene_df_sans1 <- subset(sum_gene_df, nb_transcrit != 1)
 sum_gene_df_sans12 <- subset(sum_gene_df_sans1, nb_transcrit != 2)

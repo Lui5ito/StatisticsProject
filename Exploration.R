@@ -80,7 +80,7 @@ hist <- ggplot(sum_gene_df %>%
 
 sum_gene_df %>% 
   filter(classe == 1) %>% 
-  summary()
+  str()
 
 hist_group1 <- ggplot(sum_gene_df %>% 
          filter(classe == 1) %>% 
@@ -88,6 +88,26 @@ hist_group1 <- ggplot(sum_gene_df %>%
          geom_histogram(aes(x = nb_transcrit), alpha = 0.8, color = "#66CCFF", fill = "lightblue") +
   theme_bw() +
   geom_density(aes(x = nb_transcrit), color = "red", linewidth = 0.666)
+
+plot(density(x = (sum_gene_df %>% 
+          filter(nb_transcrit < 500) %>% 
+          filter(nb_transcrit > 0))$nb_transcrit))
+
+library(KernSmooth)
+plot(bkde((sum_gene_df %>% 
+             filter(classe == 1) %>% 
+             filter(nb_transcrit > 25))$nb_transcrit))
+##Adding the gamma distribution
+#define x-values
+x <- seq(0, 100, by=0.1)   
+#calculate gamma density for each x-value
+y <- dgamma(x, shape = 10, rate = 0.5) 
+plot(y)
+#create cumulative density plot
+
+lines(y)
+
+?density
 
 #logL(lambda) = sum(i=1:n) (-lambda+sum_gene_df$nb_transcrit[i]*log(lambda) - log(sum_gene_df$nb_transcrit[i]!))
 

@@ -3,6 +3,7 @@ library(hdf5r)
 library(dplyr)
 library(ggplot2)
 library(plotly)
+library(cowplot)
 
 #On récupère les données fournies
 #data <- Read10X_h5("raw_feature_bc_matrix.D7.h5")
@@ -59,39 +60,101 @@ sum_gene_df <- as.data.frame(colSums(gene_expression)) %>%
   filter(nb_transcrit != 0)
 
 
-plot(sum_gene_df$nb_transcrit)
-plot(sum_gene_df$nb_transcrit, log='y')
+#plot(sum_gene_df$nb_transcrit)
 
-plot(sum_gene_df$nb_transcrit, log='y', ylim = c(2000, 10000))
+#plot(sum_gene_df$nb_transcrit, log='y')
+
+plot(sum_gene_df$nb_transcrit, pch='.', log='y')
+#abline(h = 30, col = "red")
+#abline(h = 2000, col = "red")
+#abline(h = 10300, col = "red")
+abline(h = 2000, col = "red")
+abline(h = 12000, col = "red")
 
 sum_gene_df$classe <- case_when(sum_gene_df$nb_transcrit < 2000 ~ "1",
-                                sum_gene_df$nb_transcrit >=2000 & sum_gene_df$nb_transcrit < 10000 ~ "2",
-                                sum_gene_df$nb_transcrit >= 10000 ~ "3")
+                                sum_gene_df$nb_transcrit >= 2000 & sum_gene_df$nb_transcrit < 12000 ~ "2",
+                                sum_gene_df$nb_transcrit >= 12000 ~ "3")
 
-
-hist <- ggplot(sum_gene_df %>% 
-                        filter(nb_transcrit < 10000, nb_transcrit > 2000), aes(x = nb_transcrit, y = ..density..)) +
-  geom_histogram(aes(x = nb_transcrit), alpha = 0.8, color = "#66CCFF", fill = "lightblue") +
-  theme_bw() +
-  geom_density(aes(x = nb_transcrit), color = "red", linewidth = 0.666)
-
-
-
+data_summary <- function(x) {
+  m <- mean(x)
+  ymin <- m-sd(x)
+  ymax <- m+sd(x)
+  return(c(y=m,ymin=ymin,ymax=ymax))
+}
 
 sum_gene_df %>% 
-  filter(classe == 1) %>% 
-  str()
+  filter(classe == i) %>% 
+  summary()
 
-hist_group1 <- ggplot(sum_gene_df %>% 
+vp1 <- ggplot(sum_gene_df %>% 
          filter(classe == 1) %>% 
-         filter(nb_transcrit > 25), aes(x = nb_transcrit, y = ..density..)) +
+           filter(nb_transcrit > 30), aes(x = as.factor(classe), y = nb_transcrit)) +
+  geom_violin(trim = FALSE, fill = "lightblue", color = "#66CCFF") +
+  stat_summary(fun.data=data_summary, color="red") +
+  theme_bw() + 
+  ggtitle("Violin plot for group 1") +
+  xlab("Group 1") + ylab("Number of transcript")
+bp1 <- ggplot(sum_gene_df %>% 
+         filter(classe == 1) %>% 
+           filter(nb_transcrit > 30), aes(x = nb_transcrit, y = after_stat(density))) +
          geom_histogram(aes(x = nb_transcrit), alpha = 0.8, color = "#66CCFF", fill = "lightblue") +
   theme_bw() +
-  geom_density(aes(x = nb_transcrit), color = "red", linewidth = 0.666)
+  geom_density(aes(x = nb_transcrit), color = "red", linewidth = 0.666) + 
+  ggtitle("Histogramm plot and \n np-estimated density for group 1") +
+  xlab("Number of transcript") + ylab("Number of goutellette")
+gp1 <- plot_grid(vp1, bp1, ncol = 2, nrow = 1)
 
-plot(density(x = (sum_gene_df %>% 
-          filter(nb_transcrit < 500) %>% 
-          filter(nb_transcrit > 0))$nb_transcrit))
+vp2 <- ggplot(sum_gene_df %>% 
+                filter(classe == 2), aes(x = as.factor(classe), y = nb_transcrit)) +
+  geom_violin(trim = FALSE, fill = "lightblue", color = "#66CCFF") +
+  stat_summary(fun.data=data_summary, color="red") +
+  theme_bw() + 
+  ggtitle("Violin plot for group 2") +
+  xlab("Group 2") + ylab("Number of transcript")
+bp2 <- ggplot(sum_gene_df %>% 
+                filter(classe == 2), aes(x = nb_transcrit, y = after_stat(density))) +
+  geom_histogram(aes(x = nb_transcrit), alpha = 0.8, color = "#66CCFF", fill = "lightblue") +
+  theme_bw() +
+  geom_density(aes(x = nb_transcrit), color = "red", linewidth = 0.666) + 
+  ggtitle("Histogramm plot and \n np-estimated density for group 2") +
+  xlab("Number of transcript") + ylab("Number of goutellette")
+gp2 <- plot_grid(vp2, bp2, ncol = 2, nrow = 1)
+
+
+
+#Group 3
+vp3 <- ggplot(sum_gene_df %>% 
+                filter(classe == 3), aes(x = as.factor(classe), y = nb_transcrit)) +
+  geom_violin(trim = FALSE, fill = "lightblue", color = "#66CCFF") +
+  stat_summary(fun.data=data_summary, color="red") +
+  theme_bw() + 
+  ggtitle("Violin plot for group 3") +
+  xlab("Group 3") + ylab("Number of transcript")
+bp3 <- ggplot(sum_gene_df %>% 
+                filter(classe == 3), aes(x = nb_transcrit, y = after_stat(density))) +
+  geom_histogram(aes(x = nb_transcrit), alpha = 0.8, color = "#66CCFF", fill = "lightblue") +
+  theme_bw() +
+  geom_density(aes(x = nb_transcrit), color = "red", linewidth = 0.666) + 
+  ggtitle("Histogramm plot and \n np-estimated density for group 3") +
+  xlab("Number of transcript") + ylab("Number of goutellette")
+gp3 <- plot_grid(vp3, bp3, ncol = 2, nrow = 1)
+
+
+fp <- plot_grid(gp1, gp2, gp3, labels = c("Group 1", "Group 2", "Group 3"), label_x = c(0.45, 0.45, 0.45), label_y = c(0.15, 0.15, 0.15)  ,ncol = 1, nrow = 3)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 library(KernSmooth)
 plot(bkde((sum_gene_df %>% 
@@ -133,8 +196,8 @@ sum_gene_df %>%
   filter(classe == 2) %>% 
   summary()
 
-hist_group2 <- ggplot(sum_gene_df %>% 
-                        filter(classe == 2), aes(x = nb_transcrit, y = ..density..)) +
+ggplot(sum_gene_df %>% 
+                        filter(classe == 2), aes(x = nb_transcrit, y = after_stat(density))) +
   geom_histogram(aes(x = nb_transcrit), alpha = 0.8, color = "#66CCFF", fill = "lightblue") +
   theme_bw() +
   geom_density(aes(x = nb_transcrit), color = "red", linewidth = 0.666)
@@ -143,8 +206,8 @@ sum_gene_df %>%
   filter(classe == 3) %>% 
   summary()
 
-hist_group3 <- ggplot(sum_gene_df %>% 
-                        filter(classe == 3), aes(x = nb_transcrit, y = ..density..)) +
+ggplot(sum_gene_df %>% 
+                        filter(classe == 3), aes(x = nb_transcrit, y = after_stat(density))) +
   geom_histogram(aes(x = nb_transcrit), alpha = 0.8, color = "#66CCFF", fill = "lightblue") +
   theme_bw() +
   geom_density(aes(x = nb_transcrit), color = "red", linewidth = 0.666)

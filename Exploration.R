@@ -192,6 +192,8 @@ fp <- plot_grid(gp1, gp2, gp3, labels = c("Group 1", "Group 2", "Group 3"), labe
 gp1
 gp2
 gp3
+print(fp)
+
 
 
 

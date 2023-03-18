@@ -5,6 +5,8 @@ library(ggplot2)
 library(plotly)
 library(cowplot)
 
+rm(list=ls())
+
 #On récupère les données fournies
 #data <- Read10X_h5("raw_feature_bc_matrix.D7.h5")
 

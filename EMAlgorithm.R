@@ -20,7 +20,8 @@ EM <- function(data, lambda, mu1, sigma1, mu2, sigma2, pi1, pi2, pi3) {
   ln1 <- NULL
   ln2 <- NULL
   ln3 <- NULL
-  LVC <- c(0, 0.1)
+  LVC <- c(0, 2)
+  j <- 0
   
   ### Début du 'vrai' algorithme ### 
   
@@ -32,6 +33,7 @@ EM <- function(data, lambda, mu1, sigma1, mu2, sigma2, pi1, pi2, pi3) {
       phi3 <- (1/(data[i]*sqrt(2*pi*sigma2)))*exp(-((log(data[i])-mu2)**2)/2*sigma2)
       
       somme_phi_pondere <- pi1*phi1 + pi2*phi2 + pi3*phi3
+      
       
       ln1 <- c(ln1, log(pi1*phi1))
       ln2 <- c(ln2, log(pi2*phi2))
@@ -65,16 +67,20 @@ EM <- function(data, lambda, mu1, sigma1, mu2, sigma2, pi1, pi2, pi3) {
     sigma2_r <- sum(t3*temporaire)/T3
     
     #Tant que la diff entre les deux dernier éléments de LVC est supérieur à 10^-3
-    if ((tail(LVC, 1) - tail(LVC, 2)[1]) < 0.1) {
-      break
-    }
+    print(tail(LVC, 1))
+    print(j)
+    j <- j+1
+    #if (abs((tail(LVC, 1) - tail(LVC, 2)[1])) < 1) {
+     # break
+    #}
+    if (j>1000) { break }
   }
   
-  return (list(lambda = lamnda_r, mu1 = mu1_r, sigma1 = sigma1_r, mu2 = mu2_r, sigma2 = sigma2_r, pi1 = pi1_r, pi2 = pi2_r, pi3 = pi3_r, LVC = LVC))
+  return (list(lambda = lambda_r, mu1 = mu1_r, sigma1 = sigma1_r, mu2 = mu2_r, sigma2 = sigma2_r, pi1 = pi1_r, pi2 = pi2_r, pi3 = pi3_r, LVC = LVC))
 }
 
 
 ##### Test de mon algo EM #####
-data <- c(rpois(100, 1), rlnorm(100, 0, 3/2), rlnorm(100, 2, 1))
+data <- c(rpois(100, 10))
 
 test <- EM(data, 0.5, 1, 1, 1, 2, 1/3, 1/3, 1/3)

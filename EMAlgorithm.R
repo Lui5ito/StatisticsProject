@@ -66,15 +66,39 @@ EM <- function(data, lambda, mu1, sigma1, mu2, sigma2, pi1, pi2, pi3) {
     #On calculs les paramètres des distributions
     lambda_r <- sum(t1*data)/T1
     
-    mu1_r <- sum(t2*log(data))/T2
+    derv_mu1 <- function(mu) {
+      numerateur <- dnorm(data-1/2, mean = mu, sd = sigma1_r) - dnorm(data+1/2, mean = mu, sd = sigma1_r)
+      denominateur <- pnorm(data-1/2, mean = mu, sd = 1) - pnorm(data+1/2, mean = mu, sd = sigma1_r)
+      return(sum(t2*log(pi2_r)) + sum(t2*(numerateur/denominateur)))
+    }
     
-    temporaire1 <- (log(data)-mu1_r)**2
-    sigma1_r <- sum(t2*temporaire1)/T2
+    mu1_r <- uniroot(f = derv_mu1, interval = c(1000, 10000))
+    mu1_r <- optim(mu1_r, function(mu1_rr){
+      for (i in 1:n) {
+        ln_phi2 <- pnorm(data[i]+1/2, mean = mu1_rr, sd = sigma1_r) - pnorm(data[i]-1/2, mean = mu1_rr, sd = sigma1_r)
+        ln2 <- c(ln2, log(pi2_r)+ln_phi2)
+      }
+      return(sum(t2*ln2))
+    })
     
-    mu2_r <- sum(t3*log(data))/T3
+    sigma_r <- optim(sigma1_r, function(sigma1_rr){
+      for (i in 1:n) {
+        ln_phi2 <- pnorm(data[i]+1/2, mean = mu1_r, sd = sigma1_rr) - pnorm(data[i]-1/2, mean = mu1_r, sd = sigma1_rr)
+        ln2 <- c(ln2, log(pi2_r)+ln_phi2)
+      }
+      return(sum(t2*ln2))
+    })
     
-    temporaire2 <- (log(data)-mu2_r)**2
-    sigma2_r <- sum(t3*temporaire2)/T3
+    mu2_r <- 2*mu1_r
+    sigma2_r <- 2*sigma1_r
+    
+    #mu1_r <- sum(t2*log(data))/T2
+    #temporaire1 <- (log(data)-mu1_r)**2
+    #sigma1_r <- sum(t2*temporaire1)/T2
+    
+    #mu2_r <- sum(t3*log(data))/T3
+    #temporaire2 <- (log(data)-mu2_r)**2
+    #sigma2_r <- sum(t3*temporaire2)/T3
     
     #Tant que la diff entre les deux dernier éléments de LVC est supérieur à 10^-3
     print(j)
@@ -90,8 +114,15 @@ EM <- function(data, lambda, mu1, sigma1, mu2, sigma2, pi1, pi2, pi3) {
 
 
 ##### Test de mon algo EM #####
-data <- c(rpois(100, 1), rlnorm(100, meanlog = log(10000), sdlog = 1), rlnorm(100, log(20000), sdlog = 1))
+data <- c(rpois(100, 1), rlnorm(100, meanlog = log(5000), sdlog = log(1.5)), rlnorm(100, log(10000), sdlog = log(3)))
 
 test <- EM(data, 1, 100, 1, 200, 1, 1/3, 1/3, 1/3)
 
 
+test_mu <- function(mu) {
+  un <- dnorm(1-1/2, mean = mu, sd = 1) - dnorm(1+1/2, mean = mu, sd = 1)
+  deux <- pnorm(1-1/2, mean = mu, sd = 1) - pnorm(1+1/2, mean = mu, sd = 1)
+  return(un/deux)
+}
+
+uniout <- uniroot(f = test_mu, interval = c(1, 11))

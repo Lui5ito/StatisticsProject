@@ -76,6 +76,7 @@ ggplot(sum_gene_df, aes(x = seq_along(nb_transcrit), y = nb_transcrit)) +
   scale_y_continuous(trans = 'log10') +
   geom_hline(yintercept = 2000, linetype = "dashed", color = 'red', linewidth = 0.6) +
   geom_hline(yintercept = 12000, linetype = "dashed", color = 'red', linewidth = 0.6) +
+  geom_hline(yintercept = 5000, linetype = "dashed", color = 'blue', linewidth = 0.6) +
   theme_bw() +
   ggtitle("Scatter plot,\n and a first determination of the groups") +
   xlab("Index") + ylab("Number of transcript")

@@ -66,12 +66,19 @@ sum_gene_df <- as.data.frame(colSums(gene_expression)) %>%
 
 #plot(sum_gene_df$nb_transcrit, log='y')
 
-plot(sum_gene_df$nb_transcrit, pch='.', log='y')
-#abline(h = 30, col = "red")
+#plot(sum_gene_df$nb_transcrit, pch='.', log='y')
 #abline(h = 2000, col = "red")
-#abline(h = 10300, col = "red")
-abline(h = 2000, col = "red")
-abline(h = 12000, col = "red")
+#abline(h = 12000, col = "red")
+
+
+ggplot(sum_gene_df, aes(x = seq_along(nb_transcrit), y = nb_transcrit)) +
+  geom_point(shape = '.') +
+  scale_y_continuous(trans = 'log10') +
+  geom_hline(yintercept = 2000, linetype = "dashed", color = 'red', linewidth = 0.6) +
+  geom_hline(yintercept = 12000, linetype = "dashed", color = 'red', linewidth = 0.6) +
+  theme_bw() +
+  ggtitle("Scatter plot,\n and a first determination of the groups") +
+  xlab("Index") + ylab("Number of transcript")
 
 sum_gene_df$classe <- case_when(sum_gene_df$nb_transcrit < 2000 ~ "1",
                                 sum_gene_df$nb_transcrit >= 2000 & sum_gene_df$nb_transcrit < 12000 ~ "2",
@@ -102,21 +109,21 @@ bp1 <- ggplot(sum_gene_df %>%
          geom_histogram(aes(x = nb_transcrit), alpha = 0.8, color = "#66CCFF", fill = "lightblue") +
   theme_bw() +
   geom_density(aes(x = nb_transcrit), color = "red", linewidth = 0.666) + 
-  ggtitle("Histogramm plot and \n np-estimated density for group 1") +
+  ggtitle("Histogramm plot and \nnp-estimated density for group 1") +
   xlab("Number of transcript") + ylab("Number of goutellette")
 
 data_cdf_poisson = rpois(1000, 1)
 cdf1 <- ggplot(data.frame(data_cdf_poisson), aes(x = data_cdf_poisson)) + 
   stat_ecdf(geom = "point",  color = "red") +
-  labs(title="Cumulative Density Function \n for Poisson",
-       y = "Je sais pas", x="Je sais pas") +
+  labs(title="Cumulative Density Function \nfor Poisson",
+       y = "F(x)", x="x") +
   theme_bw()
 
 ecdf1 <- ggplot(sum_gene_df %>% 
          filter(classe == 1)%>% 
          filter(nb_transcrit > 30), aes(nb_transcrit)) + 
   stat_ecdf(geom = "point",  color = "#66CCFF") +
-  labs(title="Empirical Cumulative \n Density Function",
+  labs(title="Empirical Cumulative \nDensity Function",
        y = "Nombre de transcrit", x="Index de la goutelette") +
   theme_bw()
 
@@ -136,20 +143,20 @@ bp2 <- ggplot(sum_gene_df %>%
   geom_histogram(aes(x = nb_transcrit), alpha = 0.8, color = "#66CCFF", fill = "lightblue") +
   theme_bw() +
   geom_density(aes(x = nb_transcrit), color = "red", linewidth = 0.666) + 
-  ggtitle("Histogramm plot and \n np-estimated density for group 2") +
+  ggtitle("Histogramm plot and \nnp-estimated density for group 2") +
   xlab("Number of transcript") + ylab("Number of goutellette")
 
-data_cdf_ln1 = rlnorm(1000, 5, 2)
+data_cdf_ln1 = rlnorm(1000, 0, 1)
 cdf2 <- ggplot(data.frame(data_cdf_ln1), aes(x = data_cdf_ln1)) + 
   stat_ecdf(geom = "point",  color = "red") +
-  labs(title="Cumulative Density Function \n for log-Normal",
-       y = "Je sais pas", x="Je sais pas") +
+  labs(title="Cumulative Density Function \nfor log-Normal",
+       y = "F(x)", x="x") +
   theme_bw()
 
 ecdf2 <- ggplot(sum_gene_df %>% 
                   filter(classe == 2), aes(nb_transcrit)) + 
   stat_ecdf(geom = "point",  color = "#66CCFF") +
-  labs(title="Empirical Cumulative \n Density Function",
+  labs(title="Empirical Cumulative \nDensity Function",
        y = "Nombre de transcrit", x="Index de la goutelette") +
   theme_bw()
 gp2 <- plot_grid(vp2, bp2, cdf2, ecdf2, ncol = 2, nrow = 2)
@@ -169,20 +176,20 @@ bp3 <- ggplot(sum_gene_df %>%
   geom_histogram(aes(x = nb_transcrit), alpha = 0.8, color = "#66CCFF", fill = "lightblue") +
   theme_bw() +
   geom_density(aes(x = nb_transcrit), color = "red", linewidth = 0.666) + 
-  ggtitle("Histogramm plot and \n np-estimated density for group 3") +
+  ggtitle("Histogramm plot and \nnp-estimated density for group 3") +
   xlab("Number of transcript") + ylab("Number of goutellette")
 
-data_cdf_ln2 = rlnorm(1000, 10, 2)
+data_cdf_ln2 = rlnorm(1000, 100, 1)
 cdf3 <- ggplot(data.frame(data_cdf_ln2), aes(x = data_cdf_ln2)) + 
   stat_ecdf(geom = "point",  color = "red") +
-  labs(title="Cumulative Density Function \n for log-Normal",
-       y = "Je sais pas", x="Je sais pas") +
+  labs(title="Cumulative Density Function \nfor log-Normal",
+       y = "F(x)", x="x") +
   theme_bw()
 
 ecdf3 <- ggplot(sum_gene_df %>% 
                   filter(classe == 3), aes(nb_transcrit)) + 
   stat_ecdf(geom = "point",  color = "#66CCFF") +
-  labs(title="Empirical Cumulative \n Density Function",
+  labs(title="Empirical Cumulative \nDensity Function",
        y = "Nombre de transcrit", x="Index de la goutelette") +
   theme_bw()
 gp3 <- plot_grid(vp3, bp3, cdf3, ecdf3, ncol = 2, nrow = 2)
@@ -194,7 +201,6 @@ fp <- plot_grid(gp1, gp2, gp3, labels = c("Group 1", "Group 2", "Group 3"), labe
 gp1
 gp2
 gp3
-print(fp)
 
 
 

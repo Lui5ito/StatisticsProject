@@ -67,38 +67,34 @@ EM <- function(data, lambda, mu1, sigma1, mu2, sigma2, pi1, pi2, pi3) {
     lambda_r <- sum(t1*data)/T1
     
     derv_mu1 <- function(mu) {
-      numerateur <- dnorm(data-1/2, mean = mu, sd = sigma1_r) - dnorm(data+1/2, mean = mu, sd = sigma1_r)
-      denominateur <- pnorm(data-1/2, mean = mu, sd = 1) - pnorm(data+1/2, mean = mu, sd = sigma1_r)
-      return(sum(t2*log(pi2_r)) + sum(t2*(numerateur/denominateur)))
+      
+      numerateur11 <- -dnorm(data+1/2, mean = mu, sd = sigma1_r) + dnorm(data-1/2, mean = mu, sd = sigma1_r)
+      denominateur11 <- pnorm(data+1/2, mean = mu, sd = sigma1_r) - pnorm(data-1/2, mean = mu, sd = sigma1_r)
+      
+      numerateur21 <- -dnorm(data+1/2, mean = 2*mu, sd = sqrt(2)*sigma1_r) + dnorm(data-1/2, mean = 2*mu, sd = sqrt(2)*sigma1_r)
+      denominateur21 <- pnorm(data+1/2, mean = 2*mu, sd = sqrt(2)*sigma1_r) - pnorm(data-1/2, mean = 2*mu, sd = sqrt(2)*sigma1_r)
+      
+      return( sum(t2*(numerateur11/denominateur11)) + sum(t3*(numerateur21/denominateur21)) )
     }
+    print(derv_mu1(mu1_r))
     
     mu1_r <- uniroot(f = derv_mu1, interval = c(1000, 10000))
-    mu1_r <- optim(mu1_r, function(mu1_rr){
-      for (i in 1:n) {
-        ln_phi2 <- pnorm(data[i]+1/2, mean = mu1_rr, sd = sigma1_r) - pnorm(data[i]-1/2, mean = mu1_rr, sd = sigma1_r)
-        ln2 <- c(ln2, log(pi2_r)+ln_phi2)
-      }
-      return(sum(t2*ln2))
-    })
     
-    sigma_r <- optim(sigma1_r, function(sigma1_rr){
-      for (i in 1:n) {
-        ln_phi2 <- pnorm(data[i]+1/2, mean = mu1_r, sd = sigma1_rr) - pnorm(data[i]-1/2, mean = mu1_r, sd = sigma1_rr)
-        ln2 <- c(ln2, log(pi2_r)+ln_phi2)
-      }
-      return(sum(t2*ln2))
-    })
+    
+    derv_sigma1 <- function(sigma) {
+      numerateur12 <- dnorm(data+1/2, mean = mu1_r, sd = sigma)*((mu1_r-(data+1/2))/sigma) - dnorm(data-1/2, mean = mu1_r, sd = sigma)*((mu1_r-(data-1/2))/sigma)
+      denominateur22 <- pnorm(data+1/2, mean = mu1_r, sd = sigma) - pnorm(data-1/2, mean = mu1_r, sd = sigma)
+      
+      numerateur22 <- dnorm(data+1/2, mean = 2*mu1_r, sd = sqrt(2)*sigma)*((2*mu1_r-(data+1/2))/(srqt(2)*sigma)) - dnorm(data-1/2, mean = 2*mu1_r, sd = sqrt(2)*sigma)*((2*mu1_r-(data-1/2))/(srqt(2)*sigma))
+      denominateur22 <- pnorm(data+1/2, mean = 2*mu1_r, sd = sqrt(2)*sigma) - pnorm(data-1/2, mean = 2*mu1_r, sd = sqrt(2)*sigma)
+      
+      return( sum(t2*(numerateur12/denominateur12)) + sum(t3*(numerateur22/denominateur22)) )
+    }
+    
+    sigma1_r <- uniroot(f = derv_sigma1, interval = c(0, 100))
     
     mu2_r <- 2*mu1_r
     sigma2_r <- 2*sigma1_r
-    
-    #mu1_r <- sum(t2*log(data))/T2
-    #temporaire1 <- (log(data)-mu1_r)**2
-    #sigma1_r <- sum(t2*temporaire1)/T2
-    
-    #mu2_r <- sum(t3*log(data))/T3
-    #temporaire2 <- (log(data)-mu2_r)**2
-    #sigma2_r <- sum(t3*temporaire2)/T3
     
     #Tant que la diff entre les deux dernier éléments de LVC est supérieur à 10^-3
     print(j)
@@ -114,15 +110,13 @@ EM <- function(data, lambda, mu1, sigma1, mu2, sigma2, pi1, pi2, pi3) {
 
 
 ##### Test de mon algo EM #####
-data <- c(rpois(100, 1), rlnorm(100, meanlog = log(5000), sdlog = log(1.5)), rlnorm(100, log(10000), sdlog = log(3)))
+data <- c(rpois(100, 1), rnorm(100, mean = 5000, sd = 1.5), rnorm(100, mean = 10000, sd = 3))
 
-test <- EM(data, 1, 100, 1, 200, 1, 1/3, 1/3, 1/3)
+test <- EM(data, 1, 500, 1, 1000, 1, 1/3, 1/3, 1/3)
 
-
+dnorm(1000, mean = 5000, sd = 1.5)
 test_mu <- function(mu) {
   un <- dnorm(1-1/2, mean = mu, sd = 1) - dnorm(1+1/2, mean = mu, sd = 1)
   deux <- pnorm(1-1/2, mean = mu, sd = 1) - pnorm(1+1/2, mean = mu, sd = 1)
   return(un/deux)
 }
-
-uniout <- uniroot(f = test_mu, interval = c(1, 11))

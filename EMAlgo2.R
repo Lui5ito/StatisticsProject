@@ -103,6 +103,6 @@ EM <- function(data, lambda0, mu0, sigma0, pi1, pi2, pi3) {
 
 ##### Test de mon algo EM #####
 data <- c(rpois(100, 3), trunc(rnorm(100, mean = 5000, sd = 1.5)), trunc(rnorm(100, mean = 10000, sd = 3)))
-
+data <- echant[,1]
 test <- EM(data, 3, 500, 1, 1/3, 1/3, 1/3)
 dpois(data, 3)

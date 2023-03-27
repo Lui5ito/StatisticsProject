@@ -1,4 +1,5 @@
 ###### Mise en place de l'algorithme EM avec Optim#####
+library(Rmpfr)
 
 EM <- function(data, lambda0, mu0, sigma0, pi1, pi2, pi3) {
   
@@ -26,27 +27,27 @@ EM <- function(data, lambda0, mu0, sigma0, pi1, pi2, pi3) {
     ln3 <- NULL
     #On commence par calculer les tik(theta[r-1])
 
-    phi1 <- function(lambda){
+    phi1 <- function(lambda= lambda_r){
       return(dpois(data, lambda, log = FALSE))
     }
-    phi2 <- function(mu, sigma){
+    phi2 <- function(mu = mu_r, sigma = sigma_r){
       return(pnorm(data+1/2, mean = mu, sd = sigma) - pnorm(data-1/2, mean = mu, sd = sigma))
     }
-    phi3 <- function(mu, sigma){
+    phi3 <- function(mu = mu_r, sigma = sigma_r){
       return(pnorm(data+1/2, mean = 2*mu, sd = sqrt(2)*sigma) - pnorm(data-1/2, mean = 2*mu, sd = sqrt(2)*sigma))
     }
     
     somme_phi_pondere <- pi1_r*phi1(lambda_r) + pi2_r*phi2(mu_r, sigma_r) + pi3_r*phi3(2*mu_r, sqrt(2)*sigma_r)
     
-    ln1 <- function(lambda){
+    ln1 <- function(lambda = lambda_r){
       return(log(pi1_r)+log(phi1(lambda)))
     }
     
-    ln2 <- function(mu, sigma){
+    ln2 <- function(mu = mu_r, sigma = sigma_r){
       return(log(pi2_r)+log(phi2(mu, sigma)))
     }
     
-    ln3 <- function(mu, sigma){
+    ln3 <- function(mu = mu_r, sigma = sigma_r){
       return(log(pi3_r)+log(phi3(mu, sigma)))
     }
     
@@ -68,10 +69,10 @@ EM <- function(data, lambda0, mu0, sigma0, pi1, pi2, pi3) {
     pi3_r <- T3/n
     
     #On calculs les paramètres des distributions (Etape M), ici on la fait avec optim
-    to_argmax <- function(par){
-      lambda <- exp(par[1])
-      mu <- exp(par[2])
-      sigma <- exp(par[3])
+    to_argmax <- function(lambda, mu, sigma){
+      #lambda <- exp(par[1])
+      #mu <- exp(par[2])
+      #sigma <- exp(par[3])
       a <- sum(t1*ln1(lambda)) + sum(t2*ln2(mu, sigma)) + sum(t3*ln3(mu, sigma))
       return(a)
     }
@@ -103,6 +104,6 @@ EM <- function(data, lambda0, mu0, sigma0, pi1, pi2, pi3) {
 
 ##### Test de mon algo EM #####
 data <- c(rpois(100, 3), trunc(rnorm(100, mean = 5000, sd = 1.5)), trunc(rnorm(100, mean = 10000, sd = 3)))
-data <- echant[,1]
+data <- mpfr(echant[,1], 128)
 test <- EM(data, 3, 500, 1, 1/3, 1/3, 1/3)
 dpois(data, 3)

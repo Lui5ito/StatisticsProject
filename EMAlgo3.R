@@ -25,9 +25,9 @@ sum_gene_df %>%
   group_by(classe) %>%
   summarize(total = n())
 
-echant <- rbind((sum_gene_df %>% filter(classe == 1))[sample(nrow(sum_gene_df %>% filter(classe == 1)), 500), ], 
-                (sum_gene_df %>% filter(classe == 2))[sample(nrow(sum_gene_df %>% filter(classe == 2)), 500), ], 
-                (sum_gene_df %>% filter(classe == 3))[sample(nrow(sum_gene_df %>% filter(classe == 3)), 500), ])
+echant <- rbind((sum_gene_df %>% filter(classe == 1))[sample(nrow(sum_gene_df %>% filter(classe == 1)), 100), ], 
+                (sum_gene_df %>% filter(classe == 2))[sample(nrow(sum_gene_df %>% filter(classe == 2)), 100), ], 
+                (sum_gene_df %>% filter(classe == 3))[sample(nrow(sum_gene_df %>% filter(classe == 3)), 100), ])
 
 
 #####

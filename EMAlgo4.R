@@ -1,10 +1,10 @@
-library(Rmpfr)
 library(Seurat)
 library(hdf5r)
 library(dplyr)
 library(ggplot2)
 library(plotly)
 library(cowplot)
+library(DPQ)
 
 rm(list=ls())
 set.seed(1664)
@@ -32,13 +32,13 @@ echant <- rbind((sum_gene_df %>% filter(classe == 1))[sample(nrow(sum_gene_df %>
 
 #####
 
-data <- mpfr(echant[,1], 128)
-data <- mpfr(sum_gene_df[,1], 128)
+data <- echant[,1]
+data <- sum_gene_df[,1]
 n <- length(data)
 
 lambda_r <- 1
-mu_r <- 14000
-sigma_r <- 10000
+mu_r <- 5000
+sigma_r <- 1000
 pi1_r <- 1/3
 pi2_r <- 1/3
 pi3_r <- 1/3
@@ -50,18 +50,18 @@ suite_mu <- c(mu_r)
 
 repeat{
   phi1 <- dpois(data, lambda_r, log = FALSE)
-  phi2 <- pnorm(data+1/2, mean = mu_r, sd = sigma_r) - pnorm(data-1/2, mean = mu_r, sd = sigma_r)
-  phi3 <- pnorm(data+1/2, mean = 2*mu_r, sd = sqrt(2)*sigma_r) - pnorm(data-1/2, mean = 2*mu_r, sd = sqrt(2)*sigma_r)
+  logphi2 <- logspace.sub(pnorm(data+1/2, mean = mu_r, sd = sigma_r, log.p = TRUE), pnorm(data-1/2, mean = mu_r, sd = sigma_r, log.p = TRUE))
+  logphi3 <- logspace.sub(pnorm(data+1/2, mean = 2*mu_r, sd = sqrt(2)*sigma_r, log.p = TRUE), pnorm(data-1/2, mean = 2*mu_r, sd = sqrt(2)*sigma_r, log.p = TRUE))
   
   ln1 <- log(pi1_r*phi1)
-  ln2 <- log(pi2_r*phi2)
-  ln3 <- log(pi3_r*phi3)
+  ln2 <- log(pi2_r) + logphi2
+  ln3 <- log(pi3_r) + logphi3
   
-  somme_phi_pondere <- pi1_r*phi1 + pi2_r*phi2 + pi3_r*phi3
+  somme_phi_pondere <- pi1_r*phi1 + pi2_r*exp(logphi2) + pi3_r*exp(logphi3)
   
   t1 <- pi1_r*phi1 / somme_phi_pondere
-  t2 <- pi2_r*phi2 / somme_phi_pondere
-  t3 <- pi3_r*phi3 / somme_phi_pondere
+  t2 <- pi2_r*exp(logphi2) / somme_phi_pondere
+  t3 <- pi3_r*exp(logphi3) / somme_phi_pondere
   
   lv1 <- sum(t1*ln1)
   lv2 <- sum(t2*ln2)
@@ -73,13 +73,13 @@ repeat{
   
   #--# On peut calculer la log-vraissemblance complétée à ce moment #--#
   LV_r <- lv1+lv2+lv3
-  Lvc <- c(Lvc, as.numeric(LV_r))
+  Lvc <- c(Lvc, LV_r)
   
   #--# On peut maintenant calculer theta_r #--#
   
   ## Le calcul de lambda_r est simple
   lambda_r <- sum(t1*data)/T1
-  suite_lambda <- c(suite_lambda, as.numeric(lambda_r))
+  suite_lambda <- c(suite_lambda, lambda_r)
   
   ## Le calcul de mu_r est plus complexe, on a besoin d'intermediaires, et d'une fonction pour laquelle on va chercher le zéro.
   dLv_dmu <- function(mu){
@@ -95,8 +95,8 @@ repeat{
     
     return (psi+rho)
   }
-  mu_r <- unirootR(dLv_dmu, interval = c(10, 100000))$root
-  suite_mu <- c(suite_mu, as.numeric(mu_r))
+  mu_r <- uniroot(dLv_dmu, interval = c(10, 100000))$root
+  suite_mu <- c(suite_mu, mu_r)
   
   ## Le calcul de sigma_r est plus complexe, on a besoin d'intermediaires, et d'une fonction pour laquelle on va chercher le zéro.
   dLv_dsigma <- function(sigma){
@@ -112,8 +112,8 @@ repeat{
     
     return (psi+rho)
   }
-  sigma_r <- unirootR(dLv_dsigma, c(10, 100000))$root
-  suite_sigma <- c(suite_sigma, as.numeric(sigma_r))
+  sigma_r <- uniroot(dLv_dsigma, c(10, 100000))$root
+  suite_sigma <- c(suite_sigma, sigma_r)
   
   ##Les calculs des pi sont simples:
   pi1_r <- T1/n

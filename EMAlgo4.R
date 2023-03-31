@@ -49,17 +49,18 @@ suite_mu <- c(mu_r)
 
 
 repeat{
-  phi1 <- dpois(data, lambda_r, log = FALSE)
+  logphi1 <- dpois(data, lambda_r, log = TRUE)
   logphi2 <- logspace.sub(pnorm(data+1/2, mean = mu_r, sd = sigma_r, log.p = TRUE), pnorm(data-1/2, mean = mu_r, sd = sigma_r, log.p = TRUE))
   logphi3 <- logspace.sub(pnorm(data+1/2, mean = 2*mu_r, sd = sqrt(2)*sigma_r, log.p = TRUE), pnorm(data-1/2, mean = 2*mu_r, sd = sqrt(2)*sigma_r, log.p = TRUE))
   
-  ln1 <- log(pi1_r*phi1)
+  
+  ln1 <- log(pi1_r) + logphi1
   ln2 <- log(pi2_r) + logphi2
   ln3 <- log(pi3_r) + logphi3
   
-  somme_phi_pondere <- pi1_r*phi1 + pi2_r*exp(logphi2) + pi3_r*exp(logphi3)
+  somme_phi_pondere <- pi1_r*exp(logphi1) + pi2_r*exp(logphi2) + pi3_r*exp(logphi3)
   
-  t1 <- pi1_r*phi1 / somme_phi_pondere
+  t1 <- pi1_r*exp(logphi1) / somme_phi_pondere
   t2 <- pi2_r*exp(logphi2) / somme_phi_pondere
   t3 <- pi3_r*exp(logphi3) / somme_phi_pondere
   

@@ -6,6 +6,8 @@ library(plotly)
 library(cowplot)
 library(DPQ)
 
+source("Functions.R")
+
 rm(list=ls())
 set.seed(1664)
 #--# Pour créer l'échantillon #--#
@@ -46,13 +48,16 @@ Lvc <- NULL
 suite_lambda <- c(lambda_r)
 suite_sigma <- c(sigma_r)
 suite_mu <- c(mu_r)
+suite_pi1 <- c(pi1_r)
+suite_pi2 <- c(pi2_r)
+suite_pi3 <- c(pi3_r)
+
 
 
 repeat{
   logphi1 <- dpois(data, lambda_r, log = TRUE)
   logphi2 <- logspace.sub(pnorm(data+1/2, mean = mu_r, sd = sigma_r, log.p = TRUE), pnorm(data-1/2, mean = mu_r, sd = sigma_r, log.p = TRUE))
   logphi3 <- logspace.sub(pnorm(data+1/2, mean = 2*mu_r, sd = sqrt(2)*sigma_r, log.p = TRUE), pnorm(data-1/2, mean = 2*mu_r, sd = sqrt(2)*sigma_r, log.p = TRUE))
-  
   
   ln1 <- log(pi1_r) + logphi1
   ln2 <- log(pi2_r) + logphi2
@@ -79,42 +84,18 @@ repeat{
   #--# On peut maintenant calculer theta_r #--#
   
   ## Le calcul de lambda_r est simple
-  lambda_r <- sum(t1*data)/T1
-  suite_lambda <- c(suite_lambda, lambda_r)
+  suite_lambda <- c(suite_lambda, sum(t1*data)/T1)
   
   ## Le calcul de mu_r est plus complexe, on a besoin d'intermediaires, et d'une fonction pour laquelle on va chercher le zéro.
-  dLv_dmu <- function(mu){
-    gamma <- -dnorm(data+0.5, mean = mu, sd = sigma_r) + dnorm(data-0.5, mean = mu, sd = sigma_r)
-    delta <- pnorm(data+0.5, mean = mu, sd = sigma_r) - pnorm(data-0.5, mean = mu, sd = sigma_r)
-    khi <- gamma/delta
-    psi <- sum(t2*khi)
-    
-    kappa <- -dnorm(data+0.5, mean = 2*mu, sd = sqrt(2)*sigma_r) + dnorm(data-0.5, mean = 2*mu, sd = sqrt(2)*sigma_r)
-    tau <- pnorm(data+0.5, mean = 2*mu, sd = sqrt(2)*sigma_r) - pnorm(data-0.5, mean = 2*mu, sd = sqrt(2)*sigma_r)
-    upsilon <- kappa/tau
-    rho <- sum(t3*upsilon)
-    
-    return (psi+rho)
-  }
-  mu_r <- uniroot(dLv_dmu, interval = c(10, 100000))$root
-  suite_mu <- c(suite_mu, mu_r)
+  #mu_r <- uniroot(dLv_dmu, interval = c(10, 100000))$root
+  #suite_mu <- c(suite_mu, mu_r)
   
   ## Le calcul de sigma_r est plus complexe, on a besoin d'intermediaires, et d'une fonction pour laquelle on va chercher le zéro.
-  dLv_dsigma <- function(sigma){
-    gamma <- dnorm(data+0.5, mean = mu_r, sd = sigma)*((mu_r-(data+0.5))/sigma) - dnorm(data-0.5, mean = mu_r, sd = sigma)*((mu_r-(data-0.5))/sigma)
-    delta <- pnorm(data+0.5, mean = mu_r, sd = sigma) - pnorm(data-0.5, mean = mu_r, sd = sigma)
-    khi <- gamma/delta
-    psi <- sum(t2*khi)
-    
-    kappa <- dnorm(data+0.5, mean = 2*mu_r, sd = sqrt(2)*sigma)*((2*mu_r-(data+0.5))/sqrt(2)*sigma) - dnorm(data-0.5, mean = 2*mu_r, sd = sqrt(2)*sigma)*((2*mu_r-(data-0.5))/sqrt(2)*sigma)
-    tau <- pnorm(data+0.5, mean = 2*mu_r, sd = sqrt(2)*sigma) - pnorm(data-0.5, mean = 2*mu_r, sd = sqrt(2)*sigma)
-    upsilon <- kappa/tau
-    rho <- sum(t3*upsilon)
-    
-    return (psi+rho)
-  }
-  sigma_r <- uniroot(dLv_dsigma, c(10, 100000))$root
-  suite_sigma <- c(suite_sigma, sigma_r)
+  #sigma_r <- uniroot(dLv_dsigma, c(10, 100000))$root
+  #suite_sigma <- c(suite_sigma, sigma_r)
+  
+  optim(par = c(mu_r, sigma_r), fn = logvraissemblance, gr = gradient_mu_sigma, tail(suite_lambda, 1), tail(suite_pi1, 1), tail(suite_pi2, 1), tail(suite_pi3, 1), method = "L-BFGS-B", lower = c(1, 1), upper = c(20000, 20000))
+  
   
   ##Les calculs des pi sont simples:
   pi1_r <- T1/n

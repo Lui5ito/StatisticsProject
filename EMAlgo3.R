@@ -32,8 +32,8 @@ echant <- rbind((sum_gene_df %>% filter(classe == 1))[sample(nrow(sum_gene_df %>
 
 #####
 
-data <- mpfr(echant[,1], 128)
-data <- mpfr(sum_gene_df[,1], 128)
+data <- mpfr(as.matrix(echant[,1]), 128)
+data <- mpfr(as.matrix(sum_gene_df[,1]), 128)
 n <- length(data)
 
 lambda_r <- 1

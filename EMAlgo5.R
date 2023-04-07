@@ -41,7 +41,7 @@ n <- length(data)
 lambda_r <- data[sample(1:n, 1)]
 mu_r <- data[sample(1:n, 1)]
 mu_r
-sigma_r <- 20000
+sigma_r <- sd(data)
 pi1_r <- 1/3
 pi2_r <- 1/3
 pi3_r <- 1/3
@@ -176,40 +176,23 @@ gradient_mu_sigma <- function(params){
   t2 <- pi2_r*exp(logphi2) / somme_phi_pondere
   t3 <- pi3_r*exp(logphi3) / somme_phi_pondere
   
+  a <- -dnorm(data+1/2, mean = params[1], sd = params[2]) + dnorm(data-1/2, mean = params[1], sd = params[2])
+  b <- pnorm(data+1/2, mean = params[1], sd = params[2], log.p = FALSE) - pnorm(data-1/2, mean = params[1], sd = params[2], log.p = FALSE)
   
-  return(c(dLv_dmu(params[1]), dLv_dsigma(params[2])))
+  c <- -2*dnorm(data+1/2, mean = 2*params[1], sd = sqrt(2)*params[2]) + 2*dnorm(data-1/2, mean = 2*params[1], sd = sqrt(2)*params[2])
+  d <- pnorm(data+1/2, mean = 2*params[1], sd = sqrt(2)*params[2], log.p = FALSE) - pnorm(data-1/2, mean = 2*params[1], sd = sqrt(2)*params[2], log.p = FALSE)
+  
+  dl_dmu <- sum(t2*(a/b)) + sum(t3*(c/d))
+  
+  e <- -(((data+1/2)-params[1])/params[2]**2)*dnorm(data+1/2, mean = params[1], sd = params[2]) + (((data-1/2)-params[1])/params[2]**2)*dnorm(data-1/2, mean = params[1], sd = params[2])
+    
+  f <- -(((data+1/2)-2*params[1])/2*params[2]**2)*dnorm(data+1/2, mean = 2*params[1], sd = sqrt(2)*params[2]) + (((data-1/2)-2*params[1])/2*params[2]**2)*dnorm(data-1/2, mean = 2*params[1], sd = sqrt(2)*params[2])
+  
+  dl_dsigma <- sum(t2*(e/b)) + sum(t3*(f/d))
+  
+  
+  return(c(dl_dmu, dl_dsigma))
 }
-
-
-dLv_dmu <- function(mu){
-  gamma <- -dnorm(data+1/2, mean = mu, sd = sigma_r) + dnorm(data-1/2, mean = mu, sd = sigma_r)
-  delta <- pnorm(data+1/2, mean = mu, sd = sigma_r) - pnorm(data-1/2, mean = mu, sd = sigma_r)
-  khi <- gamma/delta
-  psi <- sum(t2*khi)
-  
-  kappa <- -dnorm(data+1/2, mean = 2*mu, sd = sqrt(2)*sigma_r) + dnorm(data-1/2, mean = 2*mu, sd = sqrt(2)*sigma_r)
-  tau <- pnorm(data+1/2, mean = 2*mu, sd = sqrt(2)*sigma_r) - pnorm(data-1/2, mean = 2*mu, sd = sqrt(2)*sigma_r)
-  upsilon <- kappa/tau
-  rho <- sum(t3*upsilon)
-  
-  return (psi+rho)
-}
-
-
-dLv_dsigma <- function(sigma){
-  gamma <- dnorm(data+1/2, mean = mu_r, sd = sigma)*((mu_r-(data+1/2))/sigma) - dnorm(data-1/2, mean = mu_r, sd = sigma)*((mu_r-(data-1/2))/sigma)
-  delta <- pnorm(data+1/2, mean = mu_r, sd = sigma) - pnorm(data-1/2, mean = mu_r, sd = sigma)
-  khi <- gamma/delta
-  psi <- sum(t2*khi)
-  
-  kappa <- dnorm(data+1/2, mean = 2*mu_r, sd = sqrt(2)*sigma)*((2*mu_r-(data+1/2))/sqrt(2)*sigma) - dnorm(data-1/2, mean = 2*mu_r, sd = sqrt(2)*sigma)*((2*mu_r-(data-1/2))/sqrt(2)*sigma)
-  tau <- pnorm(data+1/2, mean = 2*mu_r, sd = sqrt(2)*sigma) - pnorm(data-1/2, mean = 2*mu_r, sd = sqrt(2)*sigma)
-  upsilon <- kappa/tau
-  rho <- sum(t3*upsilon)
-  
-  return (psi+rho)
-}
-
 
 
 

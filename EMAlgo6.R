@@ -38,7 +38,6 @@ n <- length(data)
 
 lambda_r <- data[sample(1:n, 1)]
 mu_r <- data[sample(1:n, 1)]
-mu_r
 sigma_r <- sd(data)
 pi1_r <- 1/3
 pi2_r <- 1/3
@@ -53,10 +52,9 @@ suite_pi3 <- c(pi3_r)
 
 
 
-repeat{
   logphi1 <- dpois(data, lambda_r, log = TRUE)
-  logphi2 <- logspace.sub(pnorm(data+1/2, mean = mu_r, sd = sigma_r, log.p = TRUE), pnorm(data-1/2, mean = mu_r, sd = sigma_r, log.p = TRUE))
-  logphi3 <- logspace.sub(pnorm(data+1/2, mean = 2*mu_r, sd = sqrt(2)*sigma_r, log.p = TRUE), pnorm(data-1/2, mean = 2*mu_r, sd = sqrt(2)*sigma_r, log.p = TRUE))
+  logphi2 <- logspace.sub(pnorm((data+1/2-mu_r)/sigma_r, mean = 0, sd = 1, log.p = TRUE), pnorm((data+1/2-mu_r)/sigma_r, mean = 0, sd = 1, log.p = TRUE))
+  logphi3 <- logspace.sub(pnorm((data+1/2-2*mu_r)/2*sigma_r, mean = 0, sd = 1, log.p = TRUE), pnorm((data+1/2-2*mu_r)/2*sigma_r, mean = 0, sd = 1, log.p = TRUE))
   
   ln1 <- log(pi1_r) + logphi1
   ln2 <- log(pi2_r) + logphi2
@@ -93,7 +91,7 @@ repeat{
   #sigma_r <- uniroot(dLv_dsigma, c(10, 100000))$root
   #suite_sigma <- c(suite_sigma, sigma_r)
   
-  res <- optim(par = c(mu_r, sigma_r), fn = logvraissemblance, gr = gradient_mu_sigma, method = "L-BFGS-B", control = list(fnscale=-1), lower = c(10, 10))
+  res <- optim(par = c(mu_r, sigma_r), fn = log_vraiss_musigma, gr = gradient_musigma, method = "L-BFGS-B", control = list(fnscale=-1), lower = c(10, 10))
   suite_mu <- c(suite_mu, res$par[1])
   suite_sigma <- c(suite_sigma, res$par[2])
   ##Les calculs des pi sont simples:
@@ -106,9 +104,6 @@ repeat{
   suite_pi3 <- c(suite_pi3, pi3_r)
   
   print(length(Lvc))
-  
-  if (length(Lvc)>2 & abs((tail(Lvc, 1) - tail(Lvc, 2)[1])) < 1) { break }
-}
 
 plot(Lvc)
 plot(suite_lambda)
@@ -131,8 +126,60 @@ plot(suite_pi3)
 
 
 
+log_vraiss_musigma <- function(params){
+  logphi1 <- dpois(data, lambda_r, log = TRUE)
+  logphi2 <- logspace.sub(pnorm((data+1/2-params[1])/params[2], mean = 0, sd = 1, log.p = TRUE), pnorm((data+1/2-params[1])/params[2], mean = 0, sd = 1, log.p = TRUE))
+  logphi3 <- logspace.sub(pnorm((data+1/2-2*params[1])/2*params[2], mean = 0, sd = 1, log.p = TRUE), pnorm((data+1/2-2*params[1])/2*params[2], mean = 0, sd = 1, log.p = TRUE))
+  
+  ln1 <- log(pi1_r) + logphi1
+  ln2 <- log(pi2_r) + logphi2
+  ln3 <- log(pi3_r) + logphi3
+  
+  somme_phi_pondere <- pi1_r*exp(logphi1) + pi2_r*exp(logphi2) + pi3_r*exp(logphi3)
+  
+  t1 <- pi1_r*exp(logphi1) / somme_phi_pondere
+  t2 <- pi2_r*exp(logphi2) / somme_phi_pondere
+  t3 <- pi3_r*exp(logphi3) / somme_phi_pondere
+  
+  lv1 <- sum(t1*ln1)
+  lv2 <- sum(t2*ln2)
+  lv3 <- sum(t3*ln3)
+  
+  return(lv1+lv2+lv3)
+}
 
-
+gradient_musigma <- function(params){
+  logphi1 <- dpois(data, lambda_r, log = TRUE)
+  logphi2 <- logspace.sub(pnorm(data+1/2, mean = params[1], sd = params[2], log.p = TRUE), pnorm(data-1/2, mean = params[1], sd = params[2], log.p = TRUE))
+  logphi3 <- logspace.sub(pnorm(data+1/2, mean = 2*params[1], sd = sqrt(2)*params[2], log.p = TRUE), pnorm(data-1/2, mean = 2*params[1], sd = sqrt(2)*params[2], log.p = TRUE))
+  
+  ln1 <- log(pi1_r) + logphi1
+  ln2 <- log(pi2_r) + logphi2
+  ln3 <- log(pi3_r) + logphi3
+  
+  somme_phi_pondere <- pi1_r*exp(logphi1) + pi2_r*exp(logphi2) + pi3_r*exp(logphi3)
+  
+  t1 <- pi1_r*exp(logphi1) / somme_phi_pondere
+  t2 <- pi2_r*exp(logphi2) / somme_phi_pondere
+  t3 <- pi3_r*exp(logphi3) / somme_phi_pondere
+  
+  a <- -dnorm((data+1/2-params[1])/params[2], mean = 0, sd = 1) + dnorm((data-1/2-params[1])/params[2], mean = 0, sd = 1)
+  b <- pnorm((data+1/2-params[1])/params[2], mean = 0, sd = 1, log.p = FALSE) - pnorm((data-1/2-params[1])/params[2], mean = 0, sd = 1, log.p = FALSE)
+  
+  c <- -2*dnorm((data+1/2-2*params[1])/2*params[2], mean = 0, sd = 1) + 2*dnorm((data-1/2-2*params[1])/2*params[2], mean = 0, sd = 1)
+  d <- pnorm((data+1/2-2*params[1])/2*params[2], mean = 0, sd = 1, log.p = FALSE) - pnorm((data-1/2-2*params[1])/2*params[2], mean = 0, sd = 1, log.p = FALSE)
+  
+  dl_dmu <- sum(t2*(a/b)) + sum(t3*(c/d))
+  
+  e <- -(((data+1/2)-params[1])/params[2]**2)*dnorm((data+1/2-params[1])/params[2], mean =0, sd = 1) + (((data-1/2)-params[1])/params[2]**2)*dnorm((data-1/2-params[1])/params[2], mean = 0, sd = 1)
+  
+  f <- -(((data+1/2)-2*params[1])/2*params[2]**2)*dnorm((data+1/2-2*params[1])/2*params[2], mean = 0, sd = 1) + (((data-1/2)-2*params[1])/2*params[2]**2)*dnorm((data-1/2-2*params[1])/2*params[2], mean = 0, sd = 1)
+  
+  dl_dsigma <- sum(t2*(e/b)) + sum(t3*(f/d))
+  
+  
+  return(c(dl_dmu, dl_dsigma))
+}
 
 ################################################################################
 #--------------------------------FUNCTIONS-------------------------------------#
@@ -184,7 +231,7 @@ gradient_mu_sigma <- function(params){
   dl_dmu <- sum(t2*(a/b)) + sum(t3*(c/d))
   
   e <- -(((data+1/2)-params[1])/params[2]**2)*dnorm(data+1/2, mean = params[1], sd = params[2]) + (((data-1/2)-params[1])/params[2]**2)*dnorm(data-1/2, mean = params[1], sd = params[2])
-    
+  
   f <- -(((data+1/2)-2*params[1])/2*params[2]**2)*dnorm(data+1/2, mean = 2*params[1], sd = sqrt(2)*params[2]) + (((data-1/2)-2*params[1])/2*params[2]**2)*dnorm(data-1/2, mean = 2*params[1], sd = sqrt(2)*params[2])
   
   dl_dsigma <- sum(t2*(e/b)) + sum(t3*(f/d))

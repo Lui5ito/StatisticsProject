@@ -70,6 +70,55 @@ sum_gene_df <- as.data.frame(colSums(gene_expression)) %>%
 #abline(h = 2000, col = "red")
 #abline(h = 12000, col = "red")
 
+library(profvis)
+
+profvis(ggplot(sum_gene_df, aes(x = seq_along(nb_transcrit), y = nb_transcrit)) +
+           geom_point(shape = '.') +
+           scale_y_continuous(trans = 'log10') +
+           theme_bw() +
+           xlab("Index gouttelette") +
+           ylab("Nombre de transcrits") +
+           geom_rect(aes(xmin=0, xmax=327395, ymin=3000, ymax=100000),
+                     fill="#72AFB6",
+                     alpha=0.002,
+                     inherit.aes = FALSE) +
+           geom_hline(yintercept = 3000, linetype = "dashed", color = '#72AFB6', linewidth = 0.6) +
+           geom_hline(yintercept = 100000, linetype = "dashed", color = '#72AFB6', linewidth = 0.6) +
+           geom_rect(aes(xmin=0, xmax=327395, ymin=2000, ymax=8000),
+                     fill = "#3A7177",
+                     alpha = 0.002,
+                     inherit.aes = FALSE) +
+           geom_hline(yintercept = 2000, linetype = "dashed", color = '#3A7177', linewidth = 0.6) +
+           geom_hline(yintercept = 8000, linetype = "dashed", color = '#3A7177', linewidth = 0.6) +
+           geom_rect(aes(xmin=1, xmax=327395, ymin=1, ymax=2000),
+                     fill = "#99D3DA",
+                     alpha = 0.002,
+                     inherit.aes = FALSE) +
+           geom_hline(yintercept = 1999, linetype = "dashed", color = '#99D3DA', linewidth = 0.6))
+
+ggplot(sum_gene_df, aes(x = seq_along(nb_transcrit), y = nb_transcrit)) +
+  geom_point(shape = '.') +
+  scale_y_continuous(trans = 'log10') +
+  theme_bw() +
+  xlab("Index gouttelette") +
+  ylab("Nombre de transcrits") +
+  geom_rect(aes(xmin=0, xmax=327395, ymin=3000, ymax=100000),
+            fill="#72AFB6",
+            alpha=0.002,
+            inherit.aes = FALSE) +
+  geom_hline(yintercept = 3000, linetype = "dashed", color = '#72AFB6', linewidth = 0.6) +
+  geom_hline(yintercept = 100000, linetype = "dashed", color = '#72AFB6', linewidth = 0.6) +
+  geom_rect(aes(xmin=0, xmax=327395, ymin=2000, ymax=8000),
+            fill = "#3A7177",
+            alpha = 0.002,
+            inherit.aes = FALSE) +
+  geom_hline(yintercept = 2000, linetype = "dashed", color = '#3A7177', linewidth = 0.6) +
+  geom_hline(yintercept = 8000, linetype = "dashed", color = '#3A7177', linewidth = 0.6) +
+  geom_rect(aes(xmin=1, xmax=327395, ymin=1, ymax=2000),
+            fill = "#99D3DA",
+            alpha = 0.002,
+            inherit.aes = FALSE) +
+  geom_hline(yintercept = 1999, linetype = "dashed", color = '#99D3DA', linewidth = 0.6)
 
 ggplot(sum_gene_df, aes(x = seq_along(nb_transcrit), y = nb_transcrit)) +
   geom_point(shape = '.') +
@@ -79,7 +128,8 @@ ggplot(sum_gene_df, aes(x = seq_along(nb_transcrit), y = nb_transcrit)) +
   geom_hline(yintercept = 5000, linetype = "dashed", color = 'blue', linewidth = 0.6) +
   theme_bw() +
   ggtitle("Scatter plot,\n and a first determination of the groups") +
-  xlab("Index") + ylab("Number of transcript")
+  xlab("Index") + ylab("Number of transcript") +
+  geom_rect(aes(xmin=1, xmax =327392, ymin=1, ymax=100000), fill = 'blue', alpha = 0.02, inherit.aes = FALSE)
 
 sum_gene_df$classe <- case_when(sum_gene_df$nb_transcrit < 2000 ~ "1",
                                 sum_gene_df$nb_transcrit >= 2000 & sum_gene_df$nb_transcrit < 12000 ~ "2",

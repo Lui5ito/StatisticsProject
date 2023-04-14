@@ -8,6 +8,13 @@ library(DPQ)
 
 rm(list=ls())
 set.seed(1664)
+
+##################
+#####CONVERGE#####
+##################
+
+#Si on enlève les prints il va peut etre un peu plus vite
+
 #--# Pour créer l'échantillon #--#
 #####
 
@@ -21,39 +28,11 @@ sum_gene_df$classe <- case_when(sum_gene_df$nb_transcrit < 2000 ~ "1",
                                 sum_gene_df$nb_transcrit >= 2000 & sum_gene_df$nb_transcrit < 12000 ~ "2",
                                 sum_gene_df$nb_transcrit >= 12000 ~ "3")
 
-sum_gene_df %>%
-  group_by(classe) %>%
-  summarize(total = n())
-
-echant <- rbind((sum_gene_df %>% filter(classe == 1))[sample(nrow(sum_gene_df %>% filter(classe == 1)), 100), ], 
-                (sum_gene_df %>% filter(classe == 2))[sample(nrow(sum_gene_df %>% filter(classe == 2)), 100), ], 
-                (sum_gene_df %>% filter(classe == 3))[sample(nrow(sum_gene_df %>% filter(classe == 3)), 100), ])
-
-
-################################################################################
-##------------------------------GENERATION------------------------------------##
-################################################################################
-lambda_cible <- 1000
-mu_cible <- 1000
-sigma_cible <- 100
-
-data <- c(rpois(100, lambda_cible), round(rnorm(100, mu_cible, sigma_cible)), round(rnorm(100, 2*mu_cible, sqrt(2)*sigma_cible)))
-
-################################################################################
-##------------------------------INITIALISATION--------------------------------##
-################################################################################
-
-data <- echant[,1]
 data <- sum_gene_df[,1]
 n <- length(data)
-
-lambda_r <- 500
-mu_r <- 900
-sigma_r <- 500
-
-lambda_r <- data[sample(1:n, 1)]
-mu_r <- data[sample(1:n, 1)]
-sigma_r <- sd(data)
+lambda_r <- 3 #data[sample(1:n, 1)]
+mu_r <- 5691 #data[sample(1:n, 1)]
+sigma_r <- 10*sd(data)
 pi1_r <- 1/3
 pi2_r <- 1/3
 pi3_r <- 1/3
@@ -64,6 +43,19 @@ suite_mu <- c(mu_r)
 suite_pi1 <- c(pi1_r)
 suite_pi2 <- c(pi2_r)
 suite_pi3 <- c(pi3_r)
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ################################################################################
@@ -89,7 +81,7 @@ logvraissemblance <- function(params){
   lv2 <- sum(t2*ln2)
   lv3 <- sum(t3*ln3)
   
-  print(gradient_mu_sigma(params))
+  suite_lambda <- c(suite_lambda, sum(t1*data)/T1)
   
   return(lv1+lv2+lv3)
 }
@@ -138,8 +130,6 @@ gradient_mu_sigma <- function(params){
 
 repeat{
   logphi1 <- dpois(data, lambda_r, log = TRUE)
-  any(is.infinite(logphi2))
-  which(is.infinite(logphi2))
   logphi2 <- logspace.sub(pnorm(data+1/2, mean = mu_r, sd = sigma_r, log.p = TRUE), pnorm(data-1/2, mean = mu_r, sd = sigma_r, log.p = TRUE))
   logphi3 <- logspace.sub(pnorm(data+1/2, mean = 2*mu_r, sd = sqrt(2)*sigma_r, log.p = TRUE), pnorm(data-1/2, mean = 2*mu_r, sd = sqrt(2)*sigma_r, log.p = TRUE))
   
@@ -164,7 +154,6 @@ repeat{
   #--# On peut calculer la log-vraissemblance complétée à ce moment #--#
   LV_r <- lv1+lv2+lv3
   Lvc <- c(Lvc, LV_r)
-  Lvc
   #--# On peut maintenant calculer theta_r #--#
   
   ## Le calcul de lambda_r est simple
@@ -179,7 +168,7 @@ repeat{
   #sigma_r <- uniroot(dLv_dsigma, c(10, 100000))$root
   #suite_sigma <- c(suite_sigma, sigma_r)
   
-  res <- optim(par = c(mu_r, sigma_r), fn = logvraissemblance, method = "L-BFGS-B", control = list(trace=6, fnscale=-1), lower = c(1, 1),  upper = c(10000, 5000))
+  res <- optim(par = c(mu_r, sigma_r), fn = logvraissemblance, method = "L-BFGS-B", control = list(fnscale=-1), lower = c(1, 1),  upper = c(10000, 5000))
   suite_mu <- c(suite_mu, res$par[1])
   suite_sigma <- c(suite_sigma, res$par[2])
   
@@ -207,13 +196,4 @@ plot(suite_sigma)
 plot(suite_pi1)
 plot(suite_pi2)
 plot(suite_pi3)
-c(lambda_cible, mu_cible, sigma_cible)
 c(tail(suite_lambda, 1), tail(suite_mu, 1), tail(suite_sigma, 1))
-
-
-
-
-
-
-
-

@@ -186,7 +186,7 @@ repeat{
   
   print(length(Lvc))
   
-  if (length(Lvc)>2 & abs((tail(Lvc, 1) - tail(Lvc, 2)[1])) < 0.1) { break }
+  if (length(Lvc)>2 & abs((tail(Lvc, 1) - tail(Lvc, 2)[1])) < 1) { break }
 }
 
 plot(Lvc)

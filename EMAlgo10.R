@@ -60,7 +60,7 @@ logvraissemblance_pour_nloptr <- function(params){return(-logvraissemblance(para
 ################################################################################
 results <- list()
 erreurs_optim <- c()
-for (i in 1:3) {
+for (i in 1:100) {
   
   suite_lambda <- NULL
   suite_mu <- NULL
@@ -119,7 +119,7 @@ for (i in 1:3) {
     
     
     #res <- optim(par = c(mu_r, sigma_r), fn = logvraissemblance, method = "L-BFGS-B", control = list(fnscale=-1, ndeps=c(1e-8, 1e-8), pgtol = 1e-8, factr =  1e12), lower = c(1, 1))
-    res <- nloptr(x0 = c(mu_r, sigma_r), eval_f = logvraissemblance_pour_nloptr, opts = list(algorithm = "NLOPT_LN_NELDERMEAD", maxeval = 1000, tol_rel=1e-10, xtol_abs=1e-10), lb = c(1, 1))
+    res <- nloptr(x0 = c(mu_r, sigma_r), eval_f = logvraissemblance_pour_nloptr, opts = list(algorithm = "NLOPT_LN_NELDERMEAD", maxeval = 1000, tol_rel=1e-8, xtol_abs=1e-8), lb = c(1, 1))
     suite_mu <- c(suite_mu, res$solution[1])
     suite_sigma <- c(suite_sigma, res$solution[2])
     
@@ -171,33 +171,29 @@ c(tail(results[[3]]$lambda, 1), tail(results[[3]]$mu, 1), tail(results[[3]]$sigm
 c(tail(results[[3]]$pi1, 1), tail(results[[3]]$pi2, 1), tail(results[[3]]$pi3, 1))
 
 
-plot(Lvc)
-plot(suite_lambda)
-plot(suite_mu)
-plot(suite_sigma)
-plot(suite_pi1)
-plot(suite_pi2)
-plot(suite_pi3)
-c(tail(suite_lambda, 1), tail(suite_mu, 1), tail(suite_sigma, 1))
 
 
-list_mu <- seq(1:10000)
-list_vrais_mu <- NULL
-for (i in list_mu){
-  list_vrais_mu <- c(list_vrais_mu, logvraissemblance_sigma1000(i))
-}
-plot(list_mu, list_vrais_mu)
 
 
-logvraissemblance_mu5000 <- function(sigma) {
-  return (logvraissemblance(c(5000, sigma)))
-}
-list_sigma <- seq(1:10000)
-list_vrais_sigma <- NULL
-for (i in list_mu){
-  list_vrais_sigma <- c(list_vrais_sigma, logvraissemblance_mu5000(i))
-}
-plot(list_sigma, list_vrais_sigma)
 
-data <- rnorm(100, mean = 0, sd = 1)
-plot(data, pnorm(data, mean = 0, sd = 1))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

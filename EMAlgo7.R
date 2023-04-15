@@ -168,7 +168,7 @@ repeat{
   #sigma_r <- uniroot(dLv_dsigma, c(10, 100000))$root
   #suite_sigma <- c(suite_sigma, sigma_r)
   
-  res <- optim(par = c(mu_r, sigma_r), fn = logvraissemblance, method = "L-BFGS-B", control = list(fnscale=-1), lower = c(1, 1),  upper = c(10000, 5000))
+  res <- optim(par = c(mu_r, sigma_r), fn = logvraissemblance, method = "L-BFGS-B", control = list(fnscale=-1), lower = c(1, 1),  upper = c(10000, 6000))
   suite_mu <- c(suite_mu, res$par[1])
   suite_sigma <- c(suite_sigma, res$par[2])
   

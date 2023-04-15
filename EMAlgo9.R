@@ -5,32 +5,7 @@ library(ggplot2)
 library(plotly)
 library(cowplot)
 library(DPQ)
-
 library(rlist)
-
-
-
-plot(data)
-hist(data)
-
-n <- length(data)
-lambda_r <- 5 #data[sample(1:n, 1)]
-mu_r <- 3000 #data[sample(1:n, 1)]
-sigma_r <- sd(data)
-pi1_r <- 1/3
-pi2_r <- 1/3
-pi3_r <- 1/3
-Lvc <- NULL
-suite_lambda <- c(lambda_r)
-suite_sigma <- c(sigma_r)
-suite_mu <- c(mu_r)
-suite_pi1 <- c(pi1_r)
-suite_pi2 <- c(pi2_r)
-suite_pi3 <- c(pi3_r)
-
-
-
-
 
 
 rm(list=ls())
@@ -38,12 +13,17 @@ set.seed(1664)
 #--# Pour créer l'échantillon #--#
 #####
 
-lambda_cible <- 2
-mu_cible <- 4000
-sigma_cible <- 1000
-data <- c(rpois(1000, lambda_cible), round(rnorm(500, mu_cible, sigma_cible)), round(rnorm(300, 2*mu_cible, sqrt(2)*sigma_cible)))
+load("gene_expression.RData")
 
+sum_gene_df <- as.data.frame(colSums(gene_expression)) %>% 
+  rename("nb_transcrit" =`colSums(gene_expression)`) %>% 
+  filter(nb_transcrit != 0)
 
+sum_gene_df$classe <- case_when(sum_gene_df$nb_transcrit < 2000 ~ "1",
+                                sum_gene_df$nb_transcrit >= 2000 & sum_gene_df$nb_transcrit < 12000 ~ "2",
+                                sum_gene_df$nb_transcrit >= 12000 ~ "3")
+
+data <- sum_gene_df[,1]
 
 
 ################################################################################
@@ -73,19 +53,12 @@ logvraissemblance <- function(params){
 }
 
 
-logvraissemblance_sigma1000 <- function(mu) {
-  return (logvraissemblance(c(mu, 3120347)))
-}
-
-
-
 
 
 ################################################################################
 ##-------------------------------ALGORITHME-----------------------------------##
 ################################################################################
 results <- list()
-erreurs_optim <- c()
 for (i in 1:10) {
   
   suite_lambda <- NULL
@@ -143,7 +116,8 @@ for (i in 1:10) {
     suite_lambda <- c(suite_lambda, sum(t1*data)/T1)
     
     
-
+    ## Le calcul de mu_r est plus complexe, on a besoin d'intermediaires, et d'une fonction pour laquelle on va chercher le zéro.
+    ## Le calcul de sigma_r est plus complexe, on a besoin d'intermediaires, et d'une fonction pour laquelle on va chercher le zéro.
     res <- optim(par = c(mu_r, sigma_r), fn = logvraissemblance, method = "L-BFGS-B", control = list(fnscale=-1), lower = c(1, 1))
     suite_mu <- c(suite_mu, res$par[1])
     suite_sigma <- c(suite_sigma, res$par[2])
@@ -166,13 +140,12 @@ for (i in 1:10) {
   if(!(inherits(t, "try-error"))){
     ma_liste <- list(logvraisemblance  = Lvc, lambda = suite_lambda, mu = suite_mu, sigma = suite_sigma, pi1 = suite_pi1, pi2 = suite_pi2, pi3 = suite_pi3)
     results <- list.append(results, ma_liste)
-    erreurs_optim <- c(erreurs_optim, res$message)
     print(i)
   }
 }
 
 
-erreurs_optim
+
 plot(Lvc)
 plot(suite_lambda)
 plot(suite_mu)
@@ -181,25 +154,3 @@ plot(suite_pi1)
 plot(suite_pi2)
 plot(suite_pi3)
 c(tail(suite_lambda, 1), tail(suite_mu, 1), tail(suite_sigma, 1))
-
-
-list_mu <- seq(1:10000)
-list_vrais_mu <- NULL
-for (i in list_mu){
-  list_vrais_mu <- c(list_vrais_mu, logvraissemblance_sigma1000(i))
-}
-plot(list_mu, list_vrais_mu)
-
-
-logvraissemblance_mu5000 <- function(sigma) {
-  return (logvraissemblance(c(5000, sigma)))
-}
-list_sigma <- seq(1:10000)
-list_vrais_sigma <- NULL
-for (i in list_mu){
-  list_vrais_sigma <- c(list_vrais_sigma, logvraissemblance_mu5000(i))
-}
-plot(list_sigma, list_vrais_sigma)
-
-data <- rnorm(100, mean = 0, sd = 1)
-plot(data, pnorm(data, mean = 0, sd = 1))

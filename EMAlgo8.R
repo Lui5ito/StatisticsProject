@@ -5,43 +5,36 @@ library(ggplot2)
 library(plotly)
 library(cowplot)
 library(DPQ)
-
 library(rlist)
+library(nloptr)
 
-
-
-plot(data)
-hist(data)
-
-n <- length(data)
-lambda_r <- 5 #data[sample(1:n, 1)]
-mu_r <- 3000 #data[sample(1:n, 1)]
-sigma_r <- sd(data)
-pi1_r <- 1/3
-pi2_r <- 1/3
-pi3_r <- 1/3
-Lvc <- NULL
-suite_lambda <- c(lambda_r)
-suite_sigma <- c(sigma_r)
-suite_mu <- c(mu_r)
-suite_pi1 <- c(pi1_r)
-suite_pi2 <- c(pi2_r)
-suite_pi3 <- c(pi3_r)
-
-
-
-
-
+#########################################################
+#####DONNE LE BON RESULTAT AVEC LES DONNEES SIMULEES#####
+#########################################################
 
 rm(list=ls())
 set.seed(1664)
 #--# Pour créer l'échantillon #--#
 #####
 
-lambda_cible <- 2
-mu_cible <- 4000
-sigma_cible <- 1000
+lambda_cible <- 4
+mu_cible <- 7900
+sigma_cible <- 800
 data <- c(rpois(1000, lambda_cible), round(rnorm(500, mu_cible, sigma_cible)), round(rnorm(300, 2*mu_cible, sqrt(2)*sigma_cible)))
+
+################################################################################
+##----------------------------Test avec NLOPTR--------------------------------##
+################################################################################
+
+
+
+test <- nloptr(c(5000, 1000), logvraissemblance, opts = list(algorithm = "NLOPT_LN_NELDERMEAD", maxeval = 10000, tol_rel=1e-15, xtol_abs=1e-15), lb = c(1, 1), ub = c(10000, 10000))
+
+nloptr()
+test$status
+test$message
+test$solution
+
 
 
 
@@ -72,13 +65,7 @@ logvraissemblance <- function(params){
   return(lv1+lv2+lv3)
 }
 
-
-logvraissemblance_sigma1000 <- function(mu) {
-  return (logvraissemblance(c(mu, 3120347)))
-}
-
-
-
+logvraissemblance_pour_nloptr <- function(params){return(-logvraissemblance(params))}
 
 
 ################################################################################
@@ -86,7 +73,7 @@ logvraissemblance_sigma1000 <- function(mu) {
 ################################################################################
 results <- list()
 erreurs_optim <- c()
-for (i in 1:10) {
+for (i in 1:5) {
   
   suite_lambda <- NULL
   suite_mu <- NULL
@@ -144,14 +131,15 @@ for (i in 1:10) {
     
     
 
-    res <- optim(par = c(mu_r, sigma_r), fn = logvraissemblance, method = "L-BFGS-B", control = list(fnscale=-1), lower = c(1, 1))
-    suite_mu <- c(suite_mu, res$par[1])
-    suite_sigma <- c(suite_sigma, res$par[2])
+    #res <- optim(par = c(mu_r, sigma_r), fn = logvraissemblance, method = "L-BFGS-B", control = list(fnscale=-1, ndeps=c(1e-8, 1e-8), pgtol = 1e-8, factr =  1e12), lower = c(1, 1))
+    res <- nloptr(x0 = c(mu_r, sigma_r), eval_f = logvraissemblance_pour_nloptr, opts = list(algorithm = "NLOPT_LN_NELDERMEAD", maxeval = 10000, tol_rel=1e-15, xtol_abs=1e-15), lb = c(1, 1))
+    suite_mu <- c(suite_mu, res$solution[1])
+    suite_sigma <- c(suite_sigma, res$solution[2])
     
     ##Mises à jours des paramètres
     lambda_r <- sum(t1*data)/T1
-    mu_r <- res$par[1]
-    sigma_r <- res$par[2]
+    mu_r <- res$solution[1]
+    sigma_r <- res$solution[2]
     pi1_r <- T1/n
     pi2_r <- T2/n
     pi3_r <- T3/n
@@ -173,6 +161,26 @@ for (i in 1:10) {
 
 
 erreurs_optim
+
+
+logvrais_final <- c()
+for (i in 1:length(results)){
+  logvrais_final <- c(logvrais_final, max(results[[i]]$logvraisemblance))
+}
+index_max <- which.max(logvrais_final)
+plot(results[[index_max]]$logvraisemblance)
+plot(results[[index_max]]$lambda)
+plot(results[[index_max]]$mu)
+plot(results[[index_max]]$sigma)
+plot(results[[index_max]]$pi1)
+plot(results[[index_max]]$pi2)
+plot(results[[index_max]]$pi3)
+c(tail(results[[index_max]]$lambda, 1), tail(results[[index_max]]$mu, 1), tail(results[[index_max]]$sigma, 1))
+
+
+
+
+
 plot(Lvc)
 plot(suite_lambda)
 plot(suite_mu)

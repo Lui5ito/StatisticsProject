@@ -1,11 +1,11 @@
 library(Seurat)
 library(hdf5r)
 library(dplyr)
-library(ggplot2)
-library(plotly)
-library(cowplot)
 library(DPQ)
 library(rlist)
+library(nloptr)
+
+
 
 
 rm(list=ls())
@@ -52,14 +52,15 @@ logvraissemblance <- function(params){
   return(lv1+lv2+lv3)
 }
 
-
+logvraissemblance_pour_nloptr <- function(params){return(-logvraissemblance(params))}
 
 
 ################################################################################
 ##-------------------------------ALGORITHME-----------------------------------##
 ################################################################################
 results <- list()
-for (i in 1:10) {
+erreurs_optim <- c()
+for (i in 1:3) {
   
   suite_lambda <- NULL
   suite_mu <- NULL
@@ -116,16 +117,16 @@ for (i in 1:10) {
     suite_lambda <- c(suite_lambda, sum(t1*data)/T1)
     
     
-    ## Le calcul de mu_r est plus complexe, on a besoin d'intermediaires, et d'une fonction pour laquelle on va chercher le zéro.
-    ## Le calcul de sigma_r est plus complexe, on a besoin d'intermediaires, et d'une fonction pour laquelle on va chercher le zéro.
-    res <- optim(par = c(mu_r, sigma_r), fn = logvraissemblance, method = "L-BFGS-B", control = list(fnscale=-1), lower = c(1, 1))
-    suite_mu <- c(suite_mu, res$par[1])
-    suite_sigma <- c(suite_sigma, res$par[2])
+    
+    #res <- optim(par = c(mu_r, sigma_r), fn = logvraissemblance, method = "L-BFGS-B", control = list(fnscale=-1, ndeps=c(1e-8, 1e-8), pgtol = 1e-8, factr =  1e12), lower = c(1, 1))
+    res <- nloptr(x0 = c(mu_r, sigma_r), eval_f = logvraissemblance_pour_nloptr, opts = list(algorithm = "NLOPT_LN_NELDERMEAD", maxeval = 1000, tol_rel=1e-10, xtol_abs=1e-10), lb = c(1, 1))
+    suite_mu <- c(suite_mu, res$solution[1])
+    suite_sigma <- c(suite_sigma, res$solution[2])
     
     ##Mises à jours des paramètres
     lambda_r <- sum(t1*data)/T1
-    mu_r <- res$par[1]
-    sigma_r <- res$par[2]
+    mu_r <- res$solution[1]
+    sigma_r <- res$solution[2]
     pi1_r <- T1/n
     pi2_r <- T2/n
     pi3_r <- T3/n
@@ -140,10 +141,34 @@ for (i in 1:10) {
   if(!(inherits(t, "try-error"))){
     ma_liste <- list(logvraisemblance  = Lvc, lambda = suite_lambda, mu = suite_mu, sigma = suite_sigma, pi1 = suite_pi1, pi2 = suite_pi2, pi3 = suite_pi3)
     results <- list.append(results, ma_liste)
+    erreurs_optim <- c(erreurs_optim, res$message)
     print(i)
   }
 }
 
+
+erreurs_optim
+
+logvrais_final <- c()
+for (i in 1:length(results)){
+  logvrais_final <- c(logvrais_final, max(results[[i]]$logvraisemblance))
+}
+index_max <- which.max(logvrais_final)
+plot(results[[index_max]]$logvraisemblance)
+plot(results[[index_max]]$lambda)
+plot(results[[index_max]]$mu)
+plot(results[[index_max]]$sigma)
+plot(results[[index_max]]$pi1)
+plot(results[[index_max]]$pi2)
+plot(results[[index_max]]$pi3)
+c(tail(results[[index_max]]$lambda, 1), tail(results[[index_max]]$mu, 1), tail(results[[index_max]]$sigma, 1))
+c(tail(results[[index_max]]$pi1, 1), tail(results[[index_max]]$pi2, 1), tail(results[[index_max]]$pi3, 1))
+
+c(tail(results[[2]]$lambda, 1), tail(results[[2]]$mu, 1), tail(results[[2]]$sigma, 1))
+c(tail(results[[2]]$pi1, 1), tail(results[[2]]$pi2, 1), tail(results[[2]]$pi3, 1))
+
+c(tail(results[[3]]$lambda, 1), tail(results[[3]]$mu, 1), tail(results[[3]]$sigma, 1))
+c(tail(results[[3]]$pi1, 1), tail(results[[3]]$pi2, 1), tail(results[[3]]$pi3, 1))
 
 
 plot(Lvc)
@@ -154,3 +179,25 @@ plot(suite_pi1)
 plot(suite_pi2)
 plot(suite_pi3)
 c(tail(suite_lambda, 1), tail(suite_mu, 1), tail(suite_sigma, 1))
+
+
+list_mu <- seq(1:10000)
+list_vrais_mu <- NULL
+for (i in list_mu){
+  list_vrais_mu <- c(list_vrais_mu, logvraissemblance_sigma1000(i))
+}
+plot(list_mu, list_vrais_mu)
+
+
+logvraissemblance_mu5000 <- function(sigma) {
+  return (logvraissemblance(c(5000, sigma)))
+}
+list_sigma <- seq(1:10000)
+list_vrais_sigma <- NULL
+for (i in list_mu){
+  list_vrais_sigma <- c(list_vrais_sigma, logvraissemblance_mu5000(i))
+}
+plot(list_sigma, list_vrais_sigma)
+
+data <- rnorm(100, mean = 0, sd = 1)
+plot(data, pnorm(data, mean = 0, sd = 1))

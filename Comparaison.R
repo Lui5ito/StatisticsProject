@@ -1,5 +1,7 @@
 library(DPQ)
 library(nloptr)
+library(doParallel)
+library(foreach)
 
 #########################################################
 #####DONNE LE BON RESULTAT AVEC LES DONNEES SIMULEES#####
@@ -40,6 +42,13 @@ logvraissemblance_pour_nloptr <- function(params){return(-logvraissemblance(para
 ##-------------------------------ALGORITHME-----------------------------------##
 ################################################################################
 
+## Initialisation du parallélisme
+nbre_coeurs_disponibles = detectCores()
+pourcentage_des_coeurs_voulu <- 0.25
+nbre_coeurs_voulu <- makeCluster(pourcentage_des_coeurs_voulu*nbre_coeurs_disponibles)
+registerDoParallel(nbre_coeurs_souhaité)
+
+## Initialisation des paramètres des lois cible
 lambda_cible <- 3
 mu_cible <- 5050
 sigma_cible <- 1010
@@ -54,16 +63,13 @@ nbre_parametre_interet <- 9 #### log-vraisemblance complétée, temps, iteration
 #!!# On ne s'intéresse ici que aux resultats finaux. On ne s'intéresse pas à l'évolution de la log-vraisemblance complétée ni à l'évolution de theta.
 #!!# En revanche, ces aspects sont fondamentals dans le rapport et dans l'exécution de l'algorithme sur nos données réelles.
 
-resultats_nlopt <- array(data = NA, c(nbre_parametre_interet, length(taille_echantillon), nbre_repetition, length(algorithmes), nbre_random_start))
-# resultats_nlopt[1:9,i,j,k,l]
-
-resultats_EM <- array(data = NA, c(nbre_parametre_interet, length(taille_echantillon), nbre_repetition, length(algorithmes)))
-# resultats_EM[1:9,i,j,k]
+resultats <- array(data = NA, c(nbre_parametre_interet, length(taille_echantillon), nbre_repetition, length(algorithmes), nbre_random_start))
+# resultats[1:9,i,j,k,l]
 
 for (i in 1:length(taille_echantillon)){
   taille_echantillon_en_cours <- taille_echantillon[i]
   
-  for (j in 1:nbre_repetition){
+  foreach (j=1:nbre_repetition) %dopar% {
     data <- c(rpois(taille_echantillon_en_cours/2, lambda_cible), round(rnorm(taille_echantillon_en_cours/4, mu_cible, sigma_cible)), round(rnorm(taille_echantillon_en_cours/4, 2*mu_cible, sqrt(2)*sigma_cible)))
     
     for (k in 1:length(algorithmes)){
@@ -128,7 +134,7 @@ for (i in 1:length(taille_echantillon)){
           pi1_r <- T1/n
           pi2_r <- T2/n
           pi3_r <- T3/n
-
+          
           
           if (length(Lvc)>2 & abs((tail(Lvc, 1) - tail(Lvc, 2)[1])) < 0.1) { break }
         })
@@ -138,15 +144,15 @@ for (i in 1:length(taille_echantillon)){
         if(!(inherits(t, "try-error"))){
           
           ## On sauvegarde alors tous les paramètres d'intérêts finaux de notre algorithme EM
-          resultats_nlopt[1, i, j, k, l] <- logvraissemblance(c(mu_r, sigma_r)) ## log-vraisemblance complétée
-          resultats_nlopt[2, i, j, k, l] <- mean(temps_nlopt) ## On prend la moyenne de tous les nlopt utilisés lors de cet algorithme EM
-          resultats_nlopt[3, i, j, k, l] <- mean(iteration_nlopt) ## On doit encore prendre la moyenne du nombre d'itération de nlopt lors de l'algorithme EM
-          resultats_nlopt[4, i, j, k, l] <- lambda_r
-          resultats_nlopt[5, i, j, k, l] <- mu_r
-          resultats_nlopt[6, i, j, k, l] <- sigma_r
-          resultats_nlopt[7, i, j, k, l] <- pi1_r
-          resultats_nlopt[8, i, j, k, l] <- pi2_r
-          resultats_nlopt[9, i, j, k, l] <- pi3_r
+          resultats[1, i, j, k, l] <- logvraissemblance(c(mu_r, sigma_r)) ## log-vraisemblance complétée
+          resultats[2, i, j, k, l] <- mean(temps_nlopt) ## On prend la moyenne de tous les nlopt utilisés lors de cet algorithme EM
+          resultats[3, i, j, k, l] <- mean(iteration_nlopt) ## On doit encore prendre la moyenne du nombre d'itération de nlopt lors de l'algorithme EM
+          resultats[4, i, j, k, l] <- lambda_r
+          resultats[5, i, j, k, l] <- mu_r
+          resultats[6, i, j, k, l] <- sigma_r
+          resultats[7, i, j, k, l] <- pi1_r
+          resultats[8, i, j, k, l] <- pi2_r
+          resultats[9, i, j, k, l] <- pi3_r
         }
         
       }
@@ -159,20 +165,20 @@ for (i in 1:length(taille_echantillon)){
 
 
 ## On récupère un tableau juste avec la log-vraisemblance complétée
-ll <- resultats_nlopt[1, , , , ]
+ll <- resultats[1, , , , ]
 
 ## On récupère le meilleur des random-start : 
-apply(X = resultats_nlopt, MARGIN = c(1, 2, 3, 4), FUN = max, na.rm=TRUE)[1,]
+apply(X = resultats, MARGIN = c(1, 2, 3, 4), FUN = max, na.rm=TRUE)[1,]
 
 
 ## Moyenne de log-vraisemblance complétée des trois algorithmes
-apply(X = resultats_nlopt, MARGIN = c(1,4), FUN = mean, na.rm=TRUE)[1,]
+apply(X = resultats, MARGIN = c(1,4), FUN = mean, na.rm=TRUE)[1,]
 
 ## Maximum de log-vraisemblance complétée des trois algorithmes
-apply(X = resultats_nlopt, MARGIN = c(1,4), FUN = max, na.rm=TRUE)[1,]
+apply(X = resultats, MARGIN = c(1,4), FUN = max, na.rm=TRUE)[1,]
 
 ## Moyenne de lambda des trois algorithmes
-apply(X = resultats_nlopt, MARGIN = c(1,4), FUN = mean, na.rm=TRUE)[4,]
+apply(X = resultats, MARGIN = c(1,4), FUN = mean, na.rm=TRUE)[4,]
 
 
 

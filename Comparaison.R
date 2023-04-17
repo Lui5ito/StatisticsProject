@@ -54,7 +54,7 @@ mu_cible <- 5050
 sigma_cible <- 1010
 
 
-taille_echantillon <- c(10^2)
+taille_echantillon <- c(10^2, 10^3)
 nbre_repetition <- 2
 algorithmes <- c("NLOPT_LN_NELDERMEAD", "NLOPT_LN_COBYLA", "NLOPT_LN_BOBYQA") #### Pas de "NLOPT_LN_SBPLX" car trop proche de L-BFGS-B et difficile de justifier qu'il ne marche pas.  
 nbre_random_start <- 4 #### 2x le nombre de paramètres.
@@ -66,7 +66,7 @@ nbre_parametre_interet <- 9 #### log-vraisemblance complétée, temps, iteration
 resultats <- array(data = NA, c(nbre_parametre_interet, length(taille_echantillon), nbre_repetition, length(algorithmes), nbre_random_start))
 # resultats[1:9,i,j,k,l]
 
-for (i in 1:length(taille_echantillon)){
+foreach (i=1:length(taille_echantillon)) %dopar% {
   taille_echantillon_en_cours <- taille_echantillon[i]
   
   for (j in 1:nbre_repetition) {

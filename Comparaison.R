@@ -44,9 +44,9 @@ logvraissemblance_pour_nloptr <- function(params){return(-logvraissemblance(para
 
 ## Initialisation du parallélisme
 nbre_coeurs_disponibles = detectCores()
-pourcentage_des_coeurs_voulu <- 0.25
+pourcentage_des_coeurs_voulu <- 0.5
 nbre_coeurs_voulu <- makeCluster(pourcentage_des_coeurs_voulu*nbre_coeurs_disponibles)
-registerDoParallel(nbre_coeurs_souhaité)
+registerDoParallel(nbre_coeurs_voulu)
 
 ## Initialisation des paramètres des lois cible
 lambda_cible <- 3
@@ -54,10 +54,10 @@ mu_cible <- 5050
 sigma_cible <- 1010
 
 
-taille_echantillon <- c(10^2, 10^3, 10^4)
-nbre_repetition <- 20
+taille_echantillon <- c(10^2)
+nbre_repetition <- 2
 algorithmes <- c("NLOPT_LN_NELDERMEAD", "NLOPT_LN_COBYLA", "NLOPT_LN_BOBYQA") #### Pas de "NLOPT_LN_SBPLX" car trop proche de L-BFGS-B et difficile de justifier qu'il ne marche pas.  
-nbre_random_start <- 10 #### 2x le nombre de paramètres.
+nbre_random_start <- 4 #### 2x le nombre de paramètres.
 nbre_parametre_interet <- 9 #### log-vraisemblance complétée, temps, iterations, lambda, mu, sigma, pi1, pi2, pi3
 
 #!!# On ne s'intéresse ici que aux resultats finaux. On ne s'intéresse pas à l'évolution de la log-vraisemblance complétée ni à l'évolution de theta.
@@ -69,7 +69,7 @@ resultats <- array(data = NA, c(nbre_parametre_interet, length(taille_echantillo
 for (i in 1:length(taille_echantillon)){
   taille_echantillon_en_cours <- taille_echantillon[i]
   
-  foreach (j=1:nbre_repetition) %dopar% {
+  for (j in 1:nbre_repetition) {
     data <- c(rpois(taille_echantillon_en_cours/2, lambda_cible), round(rnorm(taille_echantillon_en_cours/4, mu_cible, sigma_cible)), round(rnorm(taille_echantillon_en_cours/4, 2*mu_cible, sqrt(2)*sigma_cible)))
     
     for (k in 1:length(algorithmes)){
@@ -162,7 +162,7 @@ for (i in 1:length(taille_echantillon)){
 
 
 
-
+summary(resultats)
 
 ## On récupère un tableau juste avec la log-vraisemblance complétée
 ll <- resultats[1, , , , ]

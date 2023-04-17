@@ -1,11 +1,10 @@
-library(DPQ)
-library(nloptr)
-library(doParallel)
-library(foreach)
+library(DPQ) #logspace.sub
+library(nloptr) #nolptr
+library(doParallel) #créer les clusters
+library(foreach) #permet le parallélisme
+library(reshape2) #format les données pour ggplot
+library(ggplot2) #créer les boxplots
 
-#########################################################
-#####DONNE LE BON RESULTAT AVEC LES DONNEES SIMULEES#####
-#########################################################
 
 rm(list=ls())
 set.seed(1664)
@@ -54,10 +53,10 @@ mu_cible <- 5050
 sigma_cible <- 1010
 
 
-taille_echantillon <- c(10^2, 10^3)
-nbre_repetition <- 2
+taille_echantillon <- c(10^1, 10^2)
+nbre_repetition <- 4
 algorithmes <- c("NLOPT_LN_NELDERMEAD", "NLOPT_LN_COBYLA", "NLOPT_LN_BOBYQA") #### Pas de "NLOPT_LN_SBPLX" car trop proche de L-BFGS-B et difficile de justifier qu'il ne marche pas.  
-nbre_random_start <- 4 #### 2x le nombre de paramètres.
+nbre_random_start <- 5 #### 2x le nombre de paramètres.
 nbre_parametre_interet <- 9 #### log-vraisemblance complétée, temps, iterations, lambda, mu, sigma, pi1, pi2, pi3
 
 #!!# On ne s'intéresse ici que aux resultats finaux. On ne s'intéresse pas à l'évolution de la log-vraisemblance complétée ni à l'évolution de theta.
@@ -66,7 +65,7 @@ nbre_parametre_interet <- 9 #### log-vraisemblance complétée, temps, iteration
 resultats <- array(data = NA, c(nbre_parametre_interet, length(taille_echantillon), nbre_repetition, length(algorithmes), nbre_random_start))
 # resultats[1:9,i,j,k,l]
 
-foreach (i=1:length(taille_echantillon)) %dopar% {
+for (i in 1:length(taille_echantillon)) {
   taille_echantillon_en_cours <- taille_echantillon[i]
   
   for (j in 1:nbre_repetition) {
@@ -74,6 +73,7 @@ foreach (i=1:length(taille_echantillon)) %dopar% {
     
     for (k in 1:length(algorithmes)){
       algo_en_cours <- algorithmes[k]
+      print(algo_en_cours)
       
       ## Cette boucle random start EST l'algorithme EM
       for (l in 1:nbre_random_start){
@@ -161,27 +161,39 @@ foreach (i=1:length(taille_echantillon)) %dopar% {
 }
 
 
-
-summary(resultats)
-
 ## On récupère un tableau juste avec la log-vraisemblance complétée
-ll <- resultats[1, , , , ]
+loglikelihood <- resultats[1, , , , ]
 
-## On récupère le meilleur des random-start : 
-apply(X = resultats, MARGIN = c(1, 2, 3, 4), FUN = max, na.rm=TRUE)[1,]
+## On récupère un tableau avec juste le temps
+time <- resultats[2, , , , ]
 
+## On récupère la log-vraisemblance compltée moyenne sur les random start
+mean_loglikelihood <- apply(X = loglikelihood, MARGIN = c(1,2,3), mean)
 
-## Moyenne de log-vraisemblance complétée des trois algorithmes
-apply(X = resultats, MARGIN = c(1,4), FUN = mean, na.rm=TRUE)[1,]
+## On récupère aussi les écart-type
+sd_loglikelihood <- apply(X = loglikelihood, MARGIN = c(1,2,3), sd)
 
-## Maximum de log-vraisemblance complétée des trois algorithmes
-apply(X = resultats, MARGIN = c(1,4), FUN = max, na.rm=TRUE)[1,]
+## Table formatée pour le ggplot
+for_boxplot <- melt(time, varnames = c("taille_echantillon", "nbre_repetition", "algorithmes", "nbre_random_start"))
 
-## Moyenne de lambda des trois algorithmes
-apply(X = resultats, MARGIN = c(1,4), FUN = mean, na.rm=TRUE)[4,]
-
-
-
+## Le ggplot
+ggplot(data = for_boxplot) +
+  geom_boxplot(aes(x = factor(taille_echantillon), y = value, fill = factor(algorithmes))) +
+  scale_x_discrete(breaks = c(1, 2), labels = c("10^1", "10^2")) +
+  scale_y_continuous(limits=c(0, 1)) +
+  labs(title = "Etude de la performance des algorithmes d'optimisation",
+       x = "Taille de l'échantillon",
+       y = "Temps de convergence") +
+  theme(plot.title = element_text(size = 12, face = "bold", hjust = 0.5)) +
+  labs(fill = "") +
+  theme(legend.position = "right") +
+  scale_fill_manual(
+    values = c("#00AFBB", "#E7B800", "#FC4E07"),
+    name = "Algorithmes", 
+    labels = c("Nelder Mead", "Cobyla", "Bobyqa")
+  ) +
+  theme_bw()
+  
 
 
 

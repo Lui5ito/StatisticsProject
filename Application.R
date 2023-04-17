@@ -1,0 +1,165 @@
+library(Seurat) #nécessaire pour l'importation des données
+library(hdf5r) #nécessaire pour l'importation des données
+library(dplyr) #nécessaire pour l'importation des données
+library(DPQ) #logspace.sub
+library(nloptr) #nolptr
+library(doParallel) #créer les clusters
+library(foreach) #permet le parallélisme
+
+rm(list=ls())
+set.seed(1664)
+################################################################################
+##--------------------------------DONNEES-------------------------------------##
+################################################################################
+load("gene_expression.RData")
+
+sum_gene_df <- as.data.frame(colSums(gene_expression)) %>% 
+  rename("nb_transcrit" =`colSums(gene_expression)`) %>% 
+  filter(nb_transcrit != 0)
+
+data <- sum_gene_df[,1]
+################################################################################
+##-------------------------------FONCTIONS------------------------------------##
+################################################################################
+
+logvraissemblance <- function(params){
+  logphi1 <- dpois(data, lambda_r, log = TRUE)
+  logphi2 <- logspace.sub(pnorm(data+1/2, mean = params[1], sd = params[2], log.p = TRUE), pnorm(data-1/2, mean = params[1], sd = params[2], log.p = TRUE))
+  logphi3 <- logspace.sub(pnorm(data+1/2, mean = 2*params[1], sd = sqrt(2)*params[2], log.p = TRUE), pnorm(data-1/2, mean = 2*params[1], sd = sqrt(2)*params[2], log.p = TRUE))
+  
+  ln1 <- log(pi1_r) + logphi1
+  ln2 <- log(pi2_r) + logphi2
+  ln3 <- log(pi3_r) + logphi3
+  
+  somme_phi_pondere <- pi1_r*exp(logphi1) + pi2_r*exp(logphi2) + pi3_r*exp(logphi3)
+  
+  t1 <- pi1_r*exp(logphi1) / somme_phi_pondere
+  t2 <- pi2_r*exp(logphi2) / somme_phi_pondere
+  t3 <- pi3_r*exp(logphi3) / somme_phi_pondere
+  
+  lv1 <- sum(t1*ln1)
+  lv2 <- sum(t2*ln2)
+  lv3 <- sum(t3*ln3)
+  
+  return(lv1+lv2+lv3)
+}
+
+logvraissemblance_pour_nloptr <- function(params){return(-logvraissemblance(params))}
+
+################################################################################
+##-------------------------------ALGORITHME-----------------------------------##
+################################################################################
+
+## Initialisation du parallélisme
+nbre_coeurs_disponibles = detectCores()
+pourcentage_des_coeurs_voulu <- 0.5
+nbre_coeurs_voulu <- makeCluster(pourcentage_des_coeurs_voulu*nbre_coeurs_disponibles)
+registerDoParallel(nbre_coeurs_voulu)
+
+nbre_random_start <- 1 #### On prend plus que 2x le nombre de paramètres car on a un échantillon dispoportionné
+nbre_parametre_interet <- 7 #### log-vraisemblance complétée, lambda, mu, sigma, pi1, pi2, pi3
+
+## Stockage de chaque résultats de nos random starts.
+
+resultats <- array(data = NA, c(nbre_random_start, nbre_parametre_interet))
+
+## Initialisation de tous ce qui est statique
+n <- length(data)
+
+## Cette boucle random start EST l'algorithme EM
+for (i in 1:nbre_random_start){
+  
+  ## (ré-)Initialisation des suivis des paramètres d'interets
+  suite_lambda <- c()
+  suite_mu <- c()
+  suite_sigma <- c()
+  suite_pi1 <- c()
+  suite_pi3 <- c()
+  suite_pi2 <- c()
+  Lvc <- c()
+  
+  ## Initialisation aléatoire des paramètres
+  lambda_r <- data[sample(1:n, 1)]
+  mu_r <- data[sample(1:n, 1)]
+  sigma_r <- 100*sd(data)
+  pi1_r <- 1/3
+  pi2_r <- 1/3
+  pi3_r <- 1/3
+  
+  ## Première instance des paramètres d'interets
+  suite_lambda <- c(lambda_r)
+  suite_sigma <- c(sigma_r)
+  suite_mu <- c(mu_r)
+  suite_pi1 <- c(pi1_r)
+  suite_pi2 <- c(pi2_r)
+  suite_pi3 <- c(pi3_r)
+  
+  t <- try(repeat{
+    
+    ## On a bseoin de ces calculs pour lambda_r
+    logphi1 <- dpois(data, lambda_r, log = TRUE)
+    logphi2 <- logspace.sub(pnorm(data+1/2, mean = mu_r, sd = sigma_r, log.p = TRUE), pnorm(data-1/2, mean = mu_r, sd = sigma_r, log.p = TRUE))
+    logphi3 <- logspace.sub(pnorm(data+1/2, mean = 2*mu_r, sd = sqrt(2)*sigma_r, log.p = TRUE), pnorm(data-1/2, mean = 2*mu_r, sd = sqrt(2)*sigma_r, log.p = TRUE))
+    
+    ln1 <- log(pi1_r) + logphi1
+    ln2 <- log(pi2_r) + logphi2
+    ln3 <- log(pi3_r) + logphi3
+    
+    somme_phi_pondere <- pi1_r*exp(logphi1) + pi2_r*exp(logphi2) + pi3_r*exp(logphi3)
+    
+    t1 <- pi1_r*exp(logphi1) / somme_phi_pondere
+    t2 <- pi2_r*exp(logphi2) / somme_phi_pondere
+    t3 <- pi3_r*exp(logphi3) / somme_phi_pondere
+    
+    lv1 <- sum(t1*ln1)
+    lv2 <- sum(t2*ln2)
+    lv3 <- sum(t3*ln3)
+    
+    T1 <- sum(t1)
+    T2 <- sum(t2)
+    T3 <- sum(t3)
+    
+    ## On peut maintenant mettre à jour lambda_r
+    lambda_r <- sum(t1*data)/T1
+    
+    ## On doit calculer la log-vraisemblance à chaque itération puisque c'est notre porte de sortie de la boucle repeat
+    LV_r <- lv1+lv2+lv3
+    ## Sauvegarde de la valeur de la log-vraisemblance complétée à cette instant
+    Lvc <- c(Lvc, LV_r)
+    
+    ## On optimise avec l'algorithme Bobyqat
+    res_nlopt <- nloptr(x0 = c(mu_r, sigma_r), eval_f = logvraissemblance_pour_nloptr, opts = list(algorithm = "NLOPT_LN_BOBYQA", maxeval = 10000, tol_rel=1e-15, xtol_abs=1e-15), lb = c(1, 1))
+    
+    ## Mises à jours des paramètres
+    mu_r <- res_nlopt$solution[1]
+    sigma_r <- res_nlopt$solution[2]
+    pi1_r <- T1/n
+    pi2_r <- T2/n
+    pi3_r <- T3/n
+    
+    ##Sauvegarde des historiques des paramètres d'interes
+    suite_lambda <- c(suite_lambda, lambda_r)
+    suite_mu <- c(suite_mu, mu_r)
+    suite_sigma <- c(suite_sigma, sigma_r)
+    suite_pi1 <- c(suite_pi1, pi1_r)
+    suite_pi2 <- c(suite_pi2, pi2_r)
+    suite_pi3 <- c(suite_pi3, pi3_r)
+    
+    
+    if (length(Lvc)>2 & abs((tail(Lvc, 1) - tail(Lvc, 2)[1])) < 0.1) { break }
+  })
+  
+  
+  ## On vérifie qu'il n'y a pas eu une seule erreur de nlopt dans le repeat
+  if(!(inherits(t, "try-error"))){
+    
+    ## On sauvegarde alors tous les paramètres d'intérêts finaux de notre algorithme EM
+    resultats[1, i] <- c(Lvc, logvraissemblance(c(mu_r, sigma_r))) ## log-vraisemblance complétée
+    resultats[2, i] <- suite_lambda ## On prend la moyenne de tous les nlopt utilisés lors de cet algorithme EM
+    resultats[3, i] <- suite_mu ## On doit encore prendre la moyenne du nombre d'itération de nlopt lors de l'algorithme EM
+    resultats[4, i] <- suite_sigma
+    resultats[5, i] <- suite_pi1
+    resultats[6, i] <- suite_pi2
+    resultats[7, i] <- suite_pi3
+  }
+}

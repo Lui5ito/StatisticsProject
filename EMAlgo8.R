@@ -17,24 +17,10 @@ set.seed(1664)
 #--# Pour créer l'échantillon #--#
 #####
 
-lambda_cible <- 4
-mu_cible <- 7900
-sigma_cible <- 800
+lambda_cible <- 3
+mu_cible <- 4000
+sigma_cible <- 100
 data <- c(rpois(1000, lambda_cible), round(rnorm(500, mu_cible, sigma_cible)), round(rnorm(300, 2*mu_cible, sqrt(2)*sigma_cible)))
-
-################################################################################
-##----------------------------Test avec NLOPTR--------------------------------##
-################################################################################
-
-
-
-test <- nloptr(c(5000, 1000), logvraissemblance, opts = list(algorithm = "NLOPT_LN_NELDERMEAD", maxeval = 10000, tol_rel=1e-15, xtol_abs=1e-15), lb = c(1, 1), ub = c(10000, 10000))
-
-nloptr()
-test$status
-test$message
-test$solution
-
 
 
 
@@ -73,7 +59,7 @@ logvraissemblance_pour_nloptr <- function(params){return(-logvraissemblance(para
 ################################################################################
 results <- list()
 erreurs_optim <- c()
-for (i in 1:5) {
+for (i in 1:10) {
   
   suite_lambda <- NULL
   suite_mu <- NULL
@@ -125,25 +111,28 @@ for (i in 1:5) {
     LV_r <- lv1+lv2+lv3
     Lvc <- c(Lvc, LV_r)
     #--# On peut maintenant calculer theta_r #--#
-    
-    ## Le calcul de lambda_r est simple
+    lambda_r <- sum(t1*data)/T1
     suite_lambda <- c(suite_lambda, sum(t1*data)/T1)
     
+    #res <- nloptr(x0 = c(mu_r, sigma_r), eval_f = logvraissemblance_pour_nloptr, opts = list(algorithm = "NLOPT_LN_NELDERMEAD", maxeval = 10000, tol_rel=1e-15, xtol_abs=1e-15), lb = c(1, 1))
     
-
-    #res <- optim(par = c(mu_r, sigma_r), fn = logvraissemblance, method = "L-BFGS-B", control = list(fnscale=-1, ndeps=c(1e-8, 1e-8), pgtol = 1e-8, factr =  1e12), lower = c(1, 1))
-    res <- nloptr(x0 = c(mu_r, sigma_r), eval_f = logvraissemblance_pour_nloptr, opts = list(algorithm = "NLOPT_LN_NELDERMEAD", maxeval = 10000, tol_rel=1e-15, xtol_abs=1e-15), lb = c(1, 1))
-    suite_mu <- c(suite_mu, res$solution[1])
-    suite_sigma <- c(suite_sigma, res$solution[2])
+    #res <- nloptr(x0 = c(mu_r, sigma_r), eval_f = logvraissemblance_pour_nloptr, opts = list(algorithm = "NLOPT_LN_SBPLX", maxeval = 3000, tol_rel=1e-10, xtol_abs=1e-10), lb = c(1, 1))
+    #res <- nloptr(x0 = c(mu_r, sigma_r), eval_f = logvraissemblance_pour_nloptr, opts = list(algorithm = "NLOPT_LN_COBYLA", maxeval = 3000, tol_rel=1e-10, xtol_abs=1e-10), lb = c(1, 1))
+    #res <- nloptr(x0 = c(mu_r, sigma_r), eval_f = logvraissemblance_pour_nloptr, opts = list(algorithm = "NLOPT_LN_BOBYQA", maxeval = 3000, tol_rel=1e-10, xtol_abs=1e-10), lb = c(1, 1))
+    
     
     ##Mises à jours des paramètres
-    lambda_r <- sum(t1*data)/T1
+    
     mu_r <- res$solution[1]
     sigma_r <- res$solution[2]
     pi1_r <- T1/n
     pi2_r <- T2/n
     pi3_r <- T3/n
     
+    ##Sauvegarde des historiques des paramètres
+    
+    suite_mu <- c(suite_mu, res$solution[1])
+    suite_sigma <- c(suite_sigma, res$solution[2])
     suite_pi1 <- c(suite_pi1, pi1_r)
     suite_pi2 <- c(suite_pi2, pi2_r)
     suite_pi3 <- c(suite_pi3, pi3_r)
@@ -152,6 +141,7 @@ for (i in 1:5) {
   })
   
   if(!(inherits(t, "try-error"))){
+    Lvc <- c(Lvc, logvraissemblance(c(mu_r, sigma_r))) #Pour avoir autant de points que les paramètres
     ma_liste <- list(logvraisemblance  = Lvc, lambda = suite_lambda, mu = suite_mu, sigma = suite_sigma, pi1 = suite_pi1, pi2 = suite_pi2, pi3 = suite_pi3)
     results <- list.append(results, ma_liste)
     erreurs_optim <- c(erreurs_optim, res$message)
@@ -176,7 +166,7 @@ plot(results[[index_max]]$pi1)
 plot(results[[index_max]]$pi2)
 plot(results[[index_max]]$pi3)
 c(tail(results[[index_max]]$lambda, 1), tail(results[[index_max]]$mu, 1), tail(results[[index_max]]$sigma, 1))
-
+tail(results[[index_max]]$logvraisemblance, 1)
 
 
 

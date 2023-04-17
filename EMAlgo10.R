@@ -24,7 +24,7 @@ sum_gene_df$classe <- case_when(sum_gene_df$nb_transcrit < 2000 ~ "1",
                                 sum_gene_df$nb_transcrit >= 12000 ~ "3")
 
 data <- sum_gene_df[,1]
-
+summary(data)
 
 ################################################################################
 ##-------------------------------FUNCTIONS------------------------------------##
@@ -60,7 +60,7 @@ logvraissemblance_pour_nloptr <- function(params){return(-logvraissemblance(para
 ################################################################################
 results <- list()
 erreurs_optim <- c()
-for (i in 1:100) {
+for (i in 1:1) {
   
   suite_lambda <- NULL
   suite_mu <- NULL
@@ -73,7 +73,7 @@ for (i in 1:100) {
   n <- length(data)
   lambda_r <- data[sample(1:n, 1)]
   mu_r <- data[sample(1:n, 1)]
-  sigma_r <- 1000*sd(data)
+  sigma_r <- 100*sd(data)
   pi1_r <- 1/3
   pi2_r <- 1/3
   pi3_r <- 1/3
@@ -113,15 +113,17 @@ for (i in 1:100) {
     Lvc <- c(Lvc, LV_r)
     #--# On peut maintenant calculer theta_r #--#
     
-    ## Le calcul de lambda_r est simple
-    suite_lambda <- c(suite_lambda, sum(t1*data)/T1)
-    
     
     
     #res <- optim(par = c(mu_r, sigma_r), fn = logvraissemblance, method = "L-BFGS-B", control = list(fnscale=-1, ndeps=c(1e-8, 1e-8), pgtol = 1e-8, factr =  1e12), lower = c(1, 1))
-    res <- nloptr(x0 = c(mu_r, sigma_r), eval_f = logvraissemblance_pour_nloptr, opts = list(algorithm = "NLOPT_LN_NELDERMEAD", maxeval = 1000, tol_rel=1e-8, xtol_abs=1e-8), lb = c(1, 1))
-    suite_mu <- c(suite_mu, res$solution[1])
-    suite_sigma <- c(suite_sigma, res$solution[2])
+    
+    #res <- nloptr(x0 = c(mu_r, sigma_r), eval_f = logvraissemblance_pour_nloptr, opts = list(algorithm = "NLOPT_LN_NELDERMEAD", maxeval = 1000, tol_rel=1e-8, xtol_abs=1e-8), lb = c(1, 1))
+    
+    res <- nloptr(x0 = c(mu_r, sigma_r), eval_f = logvraissemblance_pour_nloptr, opts = list(algorithm = "NLOPT_GN_DIRECT_L", maxeval = 1000, tol_rel=1e-8, xtol_abs=1e-8), lb = c(1, 1))
+    
+    
+    
+    
     
     ##Mises à jours des paramètres
     lambda_r <- sum(t1*data)/T1
@@ -131,6 +133,10 @@ for (i in 1:100) {
     pi2_r <- T2/n
     pi3_r <- T3/n
     
+    ##Sauvegarde des historiques des paramètres
+    suite_mu <- c(suite_mu, res$solution[1])
+    suite_sigma <- c(suite_sigma, res$solution[2])
+    suite_lambda <- c(suite_lambda, sum(t1*data)/T1)
     suite_pi1 <- c(suite_pi1, pi1_r)
     suite_pi2 <- c(suite_pi2, pi2_r)
     suite_pi3 <- c(suite_pi3, pi3_r)
@@ -139,6 +145,7 @@ for (i in 1:100) {
   })
   
   if(!(inherits(t, "try-error"))){
+    Lvc <- c(Lvc, logvraissemblance(c(mu_r, sigma_r))) #Pour avoir autant de points que les paramètres
     ma_liste <- list(logvraisemblance  = Lvc, lambda = suite_lambda, mu = suite_mu, sigma = suite_sigma, pi1 = suite_pi1, pi2 = suite_pi2, pi3 = suite_pi3)
     results <- list.append(results, ma_liste)
     erreurs_optim <- c(erreurs_optim, res$message)
@@ -170,9 +177,17 @@ c(tail(results[[2]]$pi1, 1), tail(results[[2]]$pi2, 1), tail(results[[2]]$pi3, 1
 c(tail(results[[3]]$lambda, 1), tail(results[[3]]$mu, 1), tail(results[[3]]$sigma, 1))
 c(tail(results[[3]]$pi1, 1), tail(results[[3]]$pi2, 1), tail(results[[3]]$pi3, 1))
 
+for (i in 1:length(results)){
+  print(tail(results[[i]]$sigma, 1))
+}
 
-
-
+plot(results[[9]]$logvraisemblance)
+plot(results[[9]]$lambda)
+plot(results[[9]]$mu)
+plot(results[[9]]$sigma)
+plot(results[[9]]$pi1)
+plot(results[[9]]$pi2)
+plot(results[[9]]$pi3)
 
 
 

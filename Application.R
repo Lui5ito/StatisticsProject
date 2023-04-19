@@ -59,7 +59,7 @@ pourcentage_des_coeurs_voulu <- 0.75
 nbre_coeurs_voulu <- makeCluster(pourcentage_des_coeurs_voulu*nbre_coeurs_disponibles)
 registerDoParallel(nbre_coeurs_voulu)
 
-nbre_random_start <- 100 #### On prend plus que 2x le nombre de paramètres car on a un échantillon dispoportionné
+nbre_random_start <- 300 #### On prend plus que 2x le nombre de paramètres car on a un échantillon dispoportionné
 nbre_parametre_interet <- 7 #### log-vraisemblance complétée, lambda, mu, sigma, pi1, pi2, pi3
 
 
@@ -178,22 +178,28 @@ save(resultats, file = "resultats_application.RData")
 ##--------------------------------RESULTATS-----------------------------------##
 ################################################################################
 
-resultats <- load(file = "resultats_application.RData")
+resultats <- readRDS("resultats_application.RData")
 
 ## On veut maintenant récupérer le meilleur des random starts, celui qui a la log-vraisemblance complétée la plus élevée.
 max_index <- 1
+length(resultats[[8]])
 max_lvc <- tail(resultats[[1]][[1]], 1)
-for (i in 9:nbre_random_start){
+for (i in 2:length(resultats)){
   print(i)
-  if (tail(resultats[[i]][[1]], 1)>max_lvc) {
-    print("b")
-    max_lvc <- tail(resultats[[i]][[1]], 1)
-    max_index <- i
+  if (length(resultats[[i]]) != 0){
+    if (tail(resultats[[i]][[1]], 1)>max_lvc) {
+      max_lvc <- tail(resultats[[i]][[1]], 1)
+      max_index <- i
+    }
   }
 }
-max_index
-max_lvc
-max(resultats[[max_index]][[1]])
-## Valeur de Theta
-c(tail(resultats[[max_index]][[1]], 1), tail(resultats[[max_index]][[2]], 1), tail(resultats[[max_index]][[3]], 1), tail(resultats[[max_index]][[4]], 1), tail(resultats[[max_index]][[5]], 1), tail(resultats[[max_index]][[6]], 1), tail(resultats[[max_index]][[7]], 1))
+
+## Les listes se récupère avec 
+resultats[[max_index]][[1]] ## pour la vraisemblance
+resultats[[max_index]][[2]] ## pour lambdahttp://127.0.0.1:31587/graphics/115581a2-66b6-4da8-b610-c06496e6b790.png
+resultats[[max_index]][[3]] ## pour mu
+resultats[[max_index]][[4]] ## pour sigma
+resultats[[max_index]][[5]] ## pour pi1
+resultats[[max_index]][[6]] ## pour pi2
+resultats[[max_index]][[7]] ## pour pi3
 

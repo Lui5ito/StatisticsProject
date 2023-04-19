@@ -164,21 +164,32 @@ resultats <- foreach (i=1:nbre_random_start, .packages=c("DPQ", "nloptr")) %dopa
   return (ma_liste)
 }
 
+
+## On stop l'utilisation de plusieurs clusters
+stopCluster(nbre_coeurs_voulu)
+
+
 ## On veut maintenant récupérer le meilleur des random starts, celui qui a la log-vraisemblance complétée la plus élevée.
 max_index <- 1
-max_lvc <- max(all_resultats_temp[[1]][[1]])
+max_lvc <- max(resultats[[1]][[1]])
 for (i in 2:nbre_random_start){
-  if (max(all_resultats_temp[[i]][[1]]) > max_lvc){
-    max_lvc <- max(all_resultats_temp[[i]][[1]])
+  if (max(resultats[[i]][[1]]) > max_lvc){
+    max_lvc <- max(resultats[[i]][[1]])
     max_index <- i
   }
 }
 
 ## Valeur de Theta
-c(tail(all_resultats_temp[[max_index]][[2]], 1), tail(all_resultats_temp[[max_index]][[3]], 1), tail(all_resultats_temp[[max_index]][[4]], 1), tail(all_resultats_temp[[max_index]][[5]], 1), tail(all_resultats_temp[[max_index]][[6]], 1), tail(all_resultats_temp[[max_index]][[7]], 1))
+c(tail(resultats[[max_index]][[2]], 1), tail(resultats[[max_index]][[3]], 1), tail(resultats[[max_index]][[4]], 1), tail(resultats[[max_index]][[5]], 1), tail(resultats[[max_index]][[6]], 1), tail(resultats[[max_index]][[7]], 1))
 
-
-
+## Plots
+plot(resultats[[max_index]][[1]])
+plot(resultats[[max_index]][[2]])
+plot(resultats[[max_index]][[3]])
+plot(resultats[[max_index]][[4]])
+plot(resultats[[max_index]][[5]])
+plot(resultats[[max_index]][[6]])
+plot(resultats[[max_index]][[7]])
 
 
 

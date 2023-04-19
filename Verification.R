@@ -1,0 +1,171 @@
+library(DPQ) #logspace.sub
+library(nloptr) #nolptr
+library(doParallel) #créer les clusters
+library(foreach) #permet le parallélisme
+library(reshape2) #formate les données pour ggplot
+library(ggplot2) #créer les boxplots
+library(tictoc)
+
+
+rm(list=ls())
+set.seed(1664)
+################################################################################
+##-------------------------------FONCTIONS------------------------------------##
+################################################################################
+
+logvraissemblance <- function(params){
+  logphi1 <- dpois(data, lambda_r, log = TRUE)
+  logphi2 <- logspace.sub(pnorm(data+1/2, mean = params[1], sd = params[2], log.p = TRUE), pnorm(data-1/2, mean = params[1], sd = params[2], log.p = TRUE))
+  logphi3 <- logspace.sub(pnorm(data+1/2, mean = 2*params[1], sd = sqrt(2)*params[2], log.p = TRUE), pnorm(data-1/2, mean = 2*params[1], sd = sqrt(2)*params[2], log.p = TRUE))
+  
+  ln1 <- log(pi1_r) + logphi1
+  ln2 <- log(pi2_r) + logphi2
+  ln3 <- log(pi3_r) + logphi3
+  
+  somme_phi_pondere <- pi1_r*exp(logphi1) + pi2_r*exp(logphi2) + pi3_r*exp(logphi3)
+  
+  t1 <- pi1_r*exp(logphi1) / somme_phi_pondere
+  t2 <- pi2_r*exp(logphi2) / somme_phi_pondere
+  t3 <- pi3_r*exp(logphi3) / somme_phi_pondere
+  
+  lv1 <- sum(t1*ln1)
+  lv2 <- sum(t2*ln2)
+  lv3 <- sum(t3*ln3)
+  
+  return(lv1+lv2+lv3)
+}
+
+logvraissemblance_pour_nloptr <- function(params){return(-logvraissemblance(params))}
+
+
+################################################################################
+##-------------------------------ALGORITHME-----------------------------------##
+################################################################################
+
+## Initialisation du parallélisme
+nbre_coeurs_disponibles = detectCores()
+nbre_coeurs_disponibles
+nbre_de_coeurs_voulu <- 4  ## Il faut que ca soit inférieur au nombre de coeurs disponibles
+nbre_coeurs_voulu <- makeCluster(nbre_de_coeurs_voulu)
+registerDoParallel(nbre_coeurs_voulu)
+
+## Initialisation des paramètres des lois cible
+lambda_liste <- c(3, 100, 250, 2)
+mu_liste <- c(5050, 10, 8000, 50)
+sigma_liste <- c(1010, 70, 100, 5)
+
+nbre_de_cible <- 2
+nbre_repetition <- 2
+algorithmes <- c("NLOPT_LN_NELDERMEAD", "NLOPT_LN_COBYLA", "NLOPT_LN_BOBYQA") #### Pas de "NLOPT_LN_SBPLX" car trop proche de L-BFGS-B et difficile de justifier qu'il ne marche pas.  
+nbre_random_start <- 3 #### 2x le nombre de paramètres.
+nbre_parametre_interet <- 7 #### log-vraisemblance complétée, lambda, mu, sigma, pi1, pi2, pi3
+
+#!!# On ne s'intéresse ici que aux resultats finaux. On ne s'intéresse pas à l'évolution de la log-vraisemblance complétée ni à l'évolution de theta.
+#!!# En revanche, ces aspects sont fondamentals dans le rapport et dans l'exécution de l'algorithme sur nos données réelles.
+
+
+# resultats_finaux[1:9,i,j,k]
+
+### Des commentaires sur le parallélisme ###
+### La boucle foreach doit se trouver en première. Ca permet de réserver les coeurs et c'est plus joli
+### Il faut inclure les packages dans la boucle car elle créer des sessions R différentes. Et pour faire tourner notre code on a besoin de ces packages. C'est aussi pour ça qu'il faut changer le setseed et initialiser le resultats_temp dans la boucle pour que chaque worker ait ses infos.
+
+
+tic("Vérification")
+resultats <- foreach (i=1:nbre_de_cible) %dopar% {
+  resultats_finaux <- array(data = NA, c(nbre_parametre_interet, nbre_repetition, nbre_random_start))
+  set.seed(10*i)
+  lambda_cible <- lambda_liste[i]
+  mu_cible <- mu_liste[i]
+  sigma_cible <- sigma_liste[i]
+  
+  d <- foreach (j=1:nbre_repetition, .packages = c("DPQ", "nloptr")) %dopar% {
+    resultats_temp <- array(data = NA, c(nbre_parametre_interet, nbre_random_start))
+    data <- c(rpois(10^2/2, lambda_cible), round(rnorm(10^2/4, mu_cible, sigma_cible)), round(rnorm(10^2/4, 2*mu_cible, sqrt(2)*sigma_cible)))
+    ## Cette boucle random start EST l'algorithme EM
+    for (k in 1:nbre_random_start){
+      
+      n <- length(data) ## Ici n vaut i mais j'ai déjà écrit n partout dans la suite...
+      
+      ## Initialisation aléatoire des paramètres
+      lambda_r <- data[sample(1:n, 1)]
+      mu_r <- data[sample(1:n, 1)]
+      sigma_r <- 10*sd(data)
+      pi1_r <- 1/3
+      pi2_r <- 1/3
+      pi3_r <- 1/3
+      Lvc <- c()
+      temps_nlopt <- c()
+      iteration_nlopt <- c()
+      
+      t <- try(repeat{
+        
+        ## On a bseoin de ces calculs pour lambda_r
+        logphi1 <- dpois(data, lambda_r, log = TRUE)
+        logphi2 <- logspace.sub(pnorm(data+1/2, mean = mu_r, sd = sigma_r, log.p = TRUE), pnorm(data-1/2, mean = mu_r, sd = sigma_r, log.p = TRUE))
+        logphi3 <- logspace.sub(pnorm(data+1/2, mean = 2*mu_r, sd = sqrt(2)*sigma_r, log.p = TRUE), pnorm(data-1/2, mean = 2*mu_r, sd = sqrt(2)*sigma_r, log.p = TRUE))
+        
+        ln1 <- log(pi1_r) + logphi1
+        ln2 <- log(pi2_r) + logphi2
+        ln3 <- log(pi3_r) + logphi3
+        
+        somme_phi_pondere <- pi1_r*exp(logphi1) + pi2_r*exp(logphi2) + pi3_r*exp(logphi3)
+        
+        t1 <- pi1_r*exp(logphi1) / somme_phi_pondere
+        t2 <- pi2_r*exp(logphi2) / somme_phi_pondere
+        t3 <- pi3_r*exp(logphi3) / somme_phi_pondere
+        
+        lv1 <- sum(t1*ln1)
+        lv2 <- sum(t2*ln2)
+        lv3 <- sum(t3*ln3)
+        
+        T1 <- sum(t1)
+        T2 <- sum(t2)
+        T3 <- sum(t3)
+        
+        ## On peut maintenant mettre à jour lambda_r
+        lambda_r <- sum(t1*data)/T1
+        
+        ## On doit calculer la log-vraisemblance à chaque itération puisque c'est notre porte de sortie de la boucle repeat
+        LV_r <- lv1+lv2+lv3
+        Lvc <- c(Lvc, LV_r)
+        
+        ## On optimise avec l'algorithme k
+        res_nlopt <- nloptr(x0 = c(mu_r, sigma_r), eval_f = logvraissemblance_pour_nloptr, opts = list(algorithm = "NLOPT_LN_BOBYQA", maxeval = 10000, tol_rel=1e-15, xtol_abs=1e-15), lb = c(1, 1))
+        
+        ## Mises à jours des paramètres
+        mu_r <- res_nlopt$solution[1]
+        sigma_r <- res_nlopt$solution[2]
+        pi1_r <- T1/n
+        pi2_r <- T2/n
+        pi3_r <- T3/n
+        
+        if (length(Lvc)>2 & abs((tail(Lvc, 1) - tail(Lvc, 2)[1])) < 0.1) { break }
+      })
+      
+      
+      ## On vérifie qu'il n'y a pas eu une seule erreur de nlopt dans l'algorithme EM
+      if(!(inherits(t, "try-error"))){
+        ## On sauvegarde alors tous les paramètres d'intérêts finaux de notre algorithme EM
+        resultats_temp[1, k] <- logvraissemblance(c(mu_r, sigma_r)) ## log-vraisemblance complétée
+        resultats_temp[2, k] <- lambda_r
+        resultats_temp[3, k] <- mu_r
+        resultats_temp[4, k] <- sigma_r
+        resultats_temp[5, k] <- pi1_r
+        resultats_temp[6, k] <- pi2_r
+        resultats_temp[7, k] <- pi3_r
+      }
+    }
+    return((resultats_temp))
+  }
+ 
+  for (l in 1:nbre_repetition){
+    resultats_finaux[,j,] <- d[[l]]
+  }
+  return(resultats_finaux)
+  
+}
+
+## On stop l'utilisation de plusieurs cluster.
+stopCluster(nbre_coeurs_voulu)
+toc()

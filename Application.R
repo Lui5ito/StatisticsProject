@@ -3,6 +3,7 @@ library(DPQ) #logspace.sub
 library(nloptr) #nolptr
 library(doParallel) #créer les clusters
 library(foreach) #permet le parallélisme
+library(tictoc)
 
 rm(list=ls())
 set.seed(1664)
@@ -14,6 +15,10 @@ load("gene_expression.RData")
 sum_gene_df <- as.data.frame(colSums(gene_expression)) %>% 
   rename("nb_transcrit" =`colSums(gene_expression)`) %>% 
   filter(nb_transcrit != 0)
+
+sum_gene_df_sup_1000 <- sum_gene_df %>% filter(nb_transcrit > 1000)
+
+data_sup_1000 <- sum_gene_df_sup_1000[,1]
 
 data <- sum_gene_df[,1]
 ################################################################################
@@ -50,17 +55,19 @@ logvraissemblance_pour_nloptr <- function(params){return(-logvraissemblance(para
 
 ## Initialisation du parallélisme
 nbre_coeurs_disponibles = detectCores()
-pourcentage_des_coeurs_voulu <- 0.5
+pourcentage_des_coeurs_voulu <- 0.75
 nbre_coeurs_voulu <- makeCluster(pourcentage_des_coeurs_voulu*nbre_coeurs_disponibles)
 registerDoParallel(nbre_coeurs_voulu)
 
-nbre_random_start <- 4 #### On prend plus que 2x le nombre de paramètres car on a un échantillon dispoportionné
+nbre_random_start <- 100 #### On prend plus que 2x le nombre de paramètres car on a un échantillon dispoportionné
 nbre_parametre_interet <- 7 #### log-vraisemblance complétée, lambda, mu, sigma, pi1, pi2, pi3
 
 
 ## Initialisation de tous ce qui est statique
 n <- length(data)
+n_sup_1000 <- length(data_sup_1000)
 
+tic("Application")
 ## Cette boucle random start EST l'algorithme EM
 ## resultats est une liste contenant chaque random start. 
 ## Un random start est une liste contenant des vecteurs qui contiennent eux même les itérations de chaque paramètre d'interêt.
@@ -80,12 +87,12 @@ resultats <- foreach (i=1:nbre_random_start, .packages=c("DPQ", "nloptr")) %dopa
   suite_pi3 <- c()
   suite_pi2 <- c()
   Lvc <- c()
-
+  
   
   ## Initialisation aléatoire des paramètres
   lambda_r <- data[sample(1:n, 1)]
-  mu_r <- data[sample(1:n, 1)]
-  sigma_r <- 100*sd(data)
+  mu_r <- data_sup_1000[sample(1:n_sup_1000, 1)] 
+  sigma_r <- data_sup_1000[sample(1:n_sup_1000, 1)]
   pi1_r <- 1/3
   pi2_r <- 1/3
   pi3_r <- 1/3
@@ -163,49 +170,30 @@ resultats <- foreach (i=1:nbre_random_start, .packages=c("DPQ", "nloptr")) %dopa
   }
   return (ma_liste)
 }
-
-
-## On stop l'utilisation de plusieurs clusters
+toc()
+#>Application: 1672.61 sec elapsed
 stopCluster(nbre_coeurs_voulu)
+save(resultats, file = "resultats_application.RData")
+################################################################################
+##--------------------------------RESULTATS-----------------------------------##
+################################################################################
 
+resultats <- load(file = "resultats_application.RData")
 
 ## On veut maintenant récupérer le meilleur des random starts, celui qui a la log-vraisemblance complétée la plus élevée.
 max_index <- 1
-max_lvc <- max(resultats[[1]][[1]])
-for (i in 2:nbre_random_start){
-  if (max(resultats[[i]][[1]]) > max_lvc){
-    max_lvc <- max(resultats[[i]][[1]])
+max_lvc <- tail(resultats[[1]][[1]], 1)
+for (i in 9:nbre_random_start){
+  print(i)
+  if (tail(resultats[[i]][[1]], 1)>max_lvc) {
+    print("b")
+    max_lvc <- tail(resultats[[i]][[1]], 1)
     max_index <- i
   }
 }
-
+max_index
+max_lvc
+max(resultats[[max_index]][[1]])
 ## Valeur de Theta
-c(tail(resultats[[max_index]][[2]], 1), tail(resultats[[max_index]][[3]], 1), tail(resultats[[max_index]][[4]], 1), tail(resultats[[max_index]][[5]], 1), tail(resultats[[max_index]][[6]], 1), tail(resultats[[max_index]][[7]], 1))
-
-## Plots
-plot(resultats[[max_index]][[1]])
-plot(resultats[[max_index]][[2]])
-plot(resultats[[max_index]][[3]])
-plot(resultats[[max_index]][[4]])
-plot(resultats[[max_index]][[5]])
-plot(resultats[[max_index]][[6]])
-plot(resultats[[max_index]][[7]])
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+c(tail(resultats[[max_index]][[1]], 1), tail(resultats[[max_index]][[2]], 1), tail(resultats[[max_index]][[3]], 1), tail(resultats[[max_index]][[4]], 1), tail(resultats[[max_index]][[5]], 1), tail(resultats[[max_index]][[6]], 1), tail(resultats[[max_index]][[7]], 1))
 

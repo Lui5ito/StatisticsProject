@@ -177,13 +177,17 @@ for (j in 1:nbre_repetition){
 stopCluster(nbre_coeurs_voulu)
 
 
+
+################################################################################
+##--------------------------------RESULTATS-----------------------------------##
+################################################################################
+
+resultats_finaux <- readRDS("resultats_comparaison.RData")
+
 summary(resultats_finaux)
 
 ## On récupère un tableau juste avec la log-vraisemblance complétée
 loglikelihood <- resultats_finaux[1, , , , ]
-
-## On récupère un tableau avec juste le temps
-time <- resultats_finaux[2, , , , ]
 
 ## On récupère la log-vraisemblance compltée moyenne sur les random start
 mean_loglikelihood <- apply(X = loglikelihood, MARGIN = c(1,2,3), mean)
@@ -191,6 +195,9 @@ mean_loglikelihood <- apply(X = loglikelihood, MARGIN = c(1,2,3), mean)
 ## On récupère aussi les écart-type
 sd_loglikelihood <- apply(X = loglikelihood, MARGIN = c(1,2,3), sd)
 
+
+## On récupère un tableau avec juste le temps
+time <- resultats_finaux[2, , , , ]
 ## Table formatée pour le ggplot
 for_boxplot <- melt(time, varnames = c("taille_echantillon", "nbre_repetition", "algorithmes", "nbre_random_start"))
 
@@ -199,15 +206,41 @@ ggplot(data = for_boxplot) +
   geom_boxplot(aes(x = factor(taille_echantillon), y = value, fill = factor(algorithmes))) +
   scale_x_discrete(breaks = 1:length(taille_echantillon), labels = taille_echantillon) +
   #scale_y_continuous(limits=c(0, 1)) +
+  scale_y_continuous (trans='log10') +
   labs(title = "Etude de la performance des algorithmes d'optimisation",
        x = "Taille de l'échantillon",
-       y = "Temps de convergence") +
+       y = "Temps de convergence (échelle logarithmique)") +
   theme(plot.title = element_text(size = 12, face = "bold", hjust = 0.5)) +
   labs(fill = "") +
   theme(legend.position = "right") +
   scale_fill_manual(
-    values = c("#8EE5EE", "#7AC5CD", "#53868B"),
+    values = c("#93dbff", "#66CCFF", "#51a3cc"),
     name = "Algorithmes", 
     labels = c("NelderMead", "Cobyla", "Bobyqa")
   ) +
   theme_bw()
+
+
+## On récupère les itérations
+iterations <- resultats_finaux[3, , , , ]
+for_boxplot_iteration <- melt(iterations, varnames = c("taille_echantillon", "nbre_repetition", "algorithmes", "nbre_random_start"))
+
+
+ggplot(data = for_boxplot_iteration) +
+  geom_boxplot(aes(x = factor(taille_echantillon), y = value, fill = factor(algorithmes))) +
+  scale_x_discrete(breaks = 1:length(taille_echantillon), labels = taille_echantillon) +
+  #scale_y_continuous(limits=c(0, 1)) +
+  #scale_y_continuous (trans='log10') +
+  labs(title = "Etude de la performance des algorithmes d'optimisation",
+       x = "Taille de l'échantillon",
+       y = "Nombre d'itérations (échelle logarithmique)") +
+  theme(plot.title = element_text(size = 12, face = "bold", hjust = 0.5)) +
+  labs(fill = "") +
+  theme(legend.position = "right") +
+  scale_fill_manual(
+    values = c("#93dbff", "#66CCFF", "#51a3cc"),
+    name = "Algorithmes", 
+    labels = c("NelderMead", "Cobyla", "Bobyqa")
+  ) +
+  theme_bw()
+

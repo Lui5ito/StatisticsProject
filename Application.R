@@ -54,18 +54,23 @@ pourcentage_des_coeurs_voulu <- 0.5
 nbre_coeurs_voulu <- makeCluster(pourcentage_des_coeurs_voulu*nbre_coeurs_disponibles)
 registerDoParallel(nbre_coeurs_voulu)
 
-nbre_random_start <- 1 #### On prend plus que 2x le nombre de paramètres car on a un échantillon dispoportionné
+nbre_random_start <- 4 #### On prend plus que 2x le nombre de paramètres car on a un échantillon dispoportionné
 nbre_parametre_interet <- 7 #### log-vraisemblance complétée, lambda, mu, sigma, pi1, pi2, pi3
 
-## Stockage de chaque résultats de nos random starts.
-
-resultats <- array(data = NA, c(nbre_random_start))
 
 ## Initialisation de tous ce qui est statique
 n <- length(data)
 
 ## Cette boucle random start EST l'algorithme EM
-for (i in 1:nbre_random_start){
+## resultats est une liste contenant chaque random start. 
+## Un random start est une liste contenant des vecteurs qui contiennent eux même les itérations de chaque paramètre d'interêt.
+resultats <- foreach (i=1:nbre_random_start, .packages=c("DPQ", "nloptr")) %dopar% {
+  
+  ## On setseed à chaque tour pour changer les initilisations.
+  set.seed(i)
+  
+  ## On initialise la liste qui va contenir le résultat du random start de l'algorithme 
+  ma_liste <- NULL
   
   ## (ré-)Initialisation des suivis des paramètres d'interets
   suite_lambda <- c()
@@ -75,7 +80,7 @@ for (i in 1:nbre_random_start){
   suite_pi3 <- c()
   suite_pi2 <- c()
   Lvc <- c()
-  ma_liste <- NULL
+
   
   ## Initialisation aléatoire des paramètres
   lambda_r <- data[sample(1:n, 1)]
@@ -155,6 +160,41 @@ for (i in 1:nbre_random_start){
     ## On sauvegarde alors tous les paramètres d'intérêts finaux de notre algorithme EM
     Lvc <- c(Lvc, logvraissemblance(c(mu_r, sigma_r))) #Pour avoir autant de points que les paramètres
     ma_liste <- list(logvraisemblance  = Lvc, lambda = suite_lambda, mu = suite_mu, sigma = suite_sigma, pi1 = suite_pi1, pi2 = suite_pi2, pi3 = suite_pi3)
-    resultats[i] <- ma_liste
+  }
+  return (ma_liste)
+}
+
+## On veut maintenant récupérer le meilleur des random starts, celui qui a la log-vraisemblance complétée la plus élevée.
+max_index <- 1
+max_lvc <- max(all_resultats_temp[[1]][[1]])
+for (i in 2:nbre_random_start){
+  if (max(all_resultats_temp[[i]][[1]]) > max_lvc){
+    max_lvc <- max(all_resultats_temp[[i]][[1]])
+    max_index <- i
   }
 }
+
+## Valeur de Theta
+c(tail(all_resultats_temp[[max_index]][[2]], 1), tail(all_resultats_temp[[max_index]][[3]], 1), tail(all_resultats_temp[[max_index]][[4]], 1), tail(all_resultats_temp[[max_index]][[5]], 1), tail(all_resultats_temp[[max_index]][[6]], 1), tail(all_resultats_temp[[max_index]][[7]], 1))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

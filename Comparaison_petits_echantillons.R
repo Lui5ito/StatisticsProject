@@ -43,9 +43,8 @@ logvraissemblance_pour_nloptr <- function(params){return(-logvraissemblance(para
 
 ## Initialisation du parallélisme
 nbre_coeurs_disponibles = detectCores()
-nbre_coeurs_disponibles
-nbre_de_coeurs_voulu <- 20  ## Il faut que ca soit inférieur au nombre de coeurs disponibles
-nbre_coeurs_voulu <- makeCluster(nbre_de_coeurs_voulu)
+pourcentage_des_coeurs_voulu <- 0.125
+nbre_coeurs_voulu <- makeCluster(pourcentage_des_coeurs_voulu*nbre_coeurs_disponibles)
 registerDoParallel(nbre_coeurs_voulu)
 
 ## Initialisation des paramètres des lois cible
@@ -54,24 +53,19 @@ mu_cible <- 5050
 sigma_cible <- 1010
 
 
-taille_echantillon <- c(10^2, 10^3, 10^4, 10^5)
-nbre_repetition <- 20
+taille_echantillon <- c(10^2, 10^3)
+nbre_repetition <- 4
 algorithmes <- c("NLOPT_LN_NELDERMEAD", "NLOPT_LN_COBYLA", "NLOPT_LN_BOBYQA") #### Pas de "NLOPT_LN_SBPLX" car trop proche de L-BFGS-B et difficile de justifier qu'il ne marche pas.  
-nbre_random_start <- 10 #### 2x le nombre de paramètres.
+nbre_random_start <- 5 #### 2x le nombre de paramètres.
 nbre_parametre_interet <- 9 #### log-vraisemblance complétée, temps, iterations, lambda, mu, sigma, pi1, pi2, pi3
 
 #!!# On ne s'intéresse ici que aux resultats finaux. On ne s'intéresse pas à l'évolution de la log-vraisemblance complétée ni à l'évolution de theta.
 #!!# En revanche, ces aspects sont fondamentals dans le rapport et dans l'exécution de l'algorithme sur nos données réelles.
 
 resultats_finaux <- array(data = NA, c(nbre_parametre_interet, length(taille_echantillon), nbre_repetition, length(algorithmes), nbre_random_start))
-# resultats_finaux[1:9,i,j,k,l]
 
-### Des commentaires sur le parallélisme ###
-
-### La boucle foreach doit se trouver en première. Ca permet de réserver les coeurs et c'est plus joli
-### Il faut inclure les packages dans la boucle car elle créer des sessions R différentes. Et pour faire tourner notre code on a besoin de ces packages. C'est aussi pour ça qu'il faut changer le setseed et initialiser le resultats_temp dans la boucle pour que chaque worker ait ses infos.
-### 
-all_results_temp <-foreach (j=1:nbre_repetition, .packages = c("DPQ", "nloptr")) %dopar% {
+# resultats[1:9,i,j,k,l]
+all_results_temp <-foreach (j=1:nbre_repetition) %dopar% {
   set.seed(j)
   resultats_temp <- array(data = NA, c(nbre_parametre_interet, length(taille_echantillon), length(algorithmes), nbre_random_start))
   
@@ -143,16 +137,18 @@ all_results_temp <-foreach (j=1:nbre_repetition, .packages = c("DPQ", "nloptr"))
           pi2_r <- T2/n
           pi3_r <- T3/n
           
+          
           if (length(Lvc)>2 & abs((tail(Lvc, 1) - tail(Lvc, 2)[1])) < 0.1) { break }
         })
         
-        
+        there_is_an_error <- 1
         ## On vérifie qu'il n'y a pas eu une seule erreur de nlopt dans l'algorithme EM
         if(!(inherits(t, "try-error"))){
+          there_is_an_error <- 0
           ## On sauvegarde alors tous les paramètres d'intérêts finaux de notre algorithme EM
           resultats_temp[1, i, k, l] <- logvraissemblance(c(mu_r, sigma_r)) ## log-vraisemblance complétée
-          resultats_temp[2, i, k, l] <- sum(temps_nlopt) ## On prend la moyenne de tous les nlopt utilisés lors de cet algorithme EM
-          resultats_temp[3, i, k, l] <- sum(iteration_nlopt) ## On doit encore prendre la moyenne du nombre d'itération de nlopt lors de l'algorithme EM
+          resultats_temp[2, i, k, l] <- mean(temps_nlopt) ## On prend la moyenne de tous les nlopt utilisés lors de cet algorithme EM
+          resultats_temp[3, i, k, l] <- mean(iteration_nlopt) ## On doit encore prendre la moyenne du nombre d'itération de nlopt lors de l'algorithme EM
           resultats_temp[4, i, k, l] <- lambda_r
           resultats_temp[5, i, k, l] <- mu_r
           resultats_temp[6, i, k, l] <- sigma_r
@@ -163,17 +159,13 @@ all_results_temp <-foreach (j=1:nbre_repetition, .packages = c("DPQ", "nloptr"))
         
       }
     }
+    return(list(resultats_temp,there_is_an_error))
   }
-  return(resultats_temp)
 }
-
-
-## On remet tous les calculs parallèle ensemble.
 for (j in 1:nbre_repetition){
-  resultats_finaux[,,j,,] <- all_results_temp[[j]]
+  print(all_results_temp[[j]][[2]])
+  resultats_finaux[,,j,,] <- all_results_temp[[j]][[1]]
 }
-
-## On stop l'utilisation de plusieurs cluster.
 stopCluster(nbre_coeurs_voulu)
 
 

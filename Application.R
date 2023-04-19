@@ -1,5 +1,3 @@
-library(Seurat) #nécessaire pour l'importation des données
-library(hdf5r) #nécessaire pour l'importation des données
 library(dplyr) #nécessaire pour l'importation des données
 library(DPQ) #logspace.sub
 library(nloptr) #nolptr
@@ -61,7 +59,7 @@ nbre_parametre_interet <- 7 #### log-vraisemblance complétée, lambda, mu, sigm
 
 ## Stockage de chaque résultats de nos random starts.
 
-resultats <- array(data = NA, c(nbre_random_start, nbre_parametre_interet))
+resultats <- array(data = NA, c(nbre_random_start))
 
 ## Initialisation de tous ce qui est statique
 n <- length(data)
@@ -77,6 +75,7 @@ for (i in 1:nbre_random_start){
   suite_pi3 <- c()
   suite_pi2 <- c()
   Lvc <- c()
+  ma_liste <- NULL
   
   ## Initialisation aléatoire des paramètres
   lambda_r <- data[sample(1:n, 1)]
@@ -154,12 +153,8 @@ for (i in 1:nbre_random_start){
   if(!(inherits(t, "try-error"))){
     
     ## On sauvegarde alors tous les paramètres d'intérêts finaux de notre algorithme EM
-    resultats[1, i] <- c(Lvc, logvraissemblance(c(mu_r, sigma_r))) ## log-vraisemblance complétée
-    resultats[2, i] <- suite_lambda ## On prend la moyenne de tous les nlopt utilisés lors de cet algorithme EM
-    resultats[3, i] <- suite_mu ## On doit encore prendre la moyenne du nombre d'itération de nlopt lors de l'algorithme EM
-    resultats[4, i] <- suite_sigma
-    resultats[5, i] <- suite_pi1
-    resultats[6, i] <- suite_pi2
-    resultats[7, i] <- suite_pi3
+    Lvc <- c(Lvc, logvraissemblance(c(mu_r, sigma_r))) #Pour avoir autant de points que les paramètres
+    ma_liste <- list(logvraisemblance  = Lvc, lambda = suite_lambda, mu = suite_mu, sigma = suite_sigma, pi1 = suite_pi1, pi2 = suite_pi2, pi3 = suite_pi3)
+    resultats[i] <- ma_liste
   }
 }

@@ -266,6 +266,5 @@ plot_classe <- ggplot(data = data_classee) +
   theme(plot.title = element_text(size = 12, face = "bold", hjust = 0.5)) +
   theme_bw()
 plot_classe
-max(data)
 
 

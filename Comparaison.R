@@ -213,7 +213,6 @@ for_boxplot <- melt(time, varnames = c("taille_echantillon", "nbre_repetition", 
 plot_temps <- ggplot(data = for_boxplot) +
   geom_boxplot(aes(x = factor(taille_echantillon), y = value, fill = factor(algorithmes))) +
   scale_x_discrete(breaks = 1:length(taille_echantillon), labels = taille_echantillon) +
-  #scale_y_continuous(limits=c(0, 1)) +
   scale_y_continuous (trans='log10') +
   labs(title = "Etude de la performance des algorithmes d'optimisation",
        x = "Taille de l'échantillon",

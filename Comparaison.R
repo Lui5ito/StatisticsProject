@@ -189,6 +189,12 @@ summary(resultats_finaux)
 ## On récupère un tableau juste avec la log-vraisemblance complétée
 loglikelihood <- resultats_finaux[1, , , , ]
 
+max_loglikelihood <- apply(X = loglikelihood, MARGIN = c(1,2,3), max, na.rm = TRUE)
+max_max_loglikelihood <- apply(X = mean_loglikelihood, MARGIN = c(1,3), max, na.rm = TRUE)
+
+min_loglikelihood <- apply(X = loglikelihood, MARGIN = c(1,2,3), min, na.rm = TRUE)
+min_min_loglikelihood <- apply(X = mean_loglikelihood, MARGIN = c(1,3), min, na.rm = TRUE)
+
 ## On récupère la log-vraisemblance compltée moyenne sur les random start
 mean_loglikelihood <- apply(X = loglikelihood, MARGIN = c(1,2,3), mean, na.rm = TRUE)
 mean_mean_loglikelihood <- apply(X = mean_loglikelihood, MARGIN = c(1,3), mean, na.rm = TRUE)
@@ -221,3 +227,5 @@ plot_temps <- ggplot(data = for_boxplot) +
     labels = c("NelderMead", "Cobyla", "Bobyqa")
   ) +
   theme_bw()
+plot_temps
+

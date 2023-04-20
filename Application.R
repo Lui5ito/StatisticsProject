@@ -227,14 +227,34 @@ t1 <- pi1_hat*exp(logphi1) / somme_phi_pondere
 t2 <- pi2_hat*exp(logphi2) / somme_phi_pondere
 t3 <- pi3_hat*exp(logphi3) / somme_phi_pondere
 
+## On regroupe les probas de chaque indivdus pour chaque groupe
 proba <- cbind(t1, t2, t3)
+
+## On créé la liste des groupes attribués à chaque individus
 groupe <- max.col(proba)
 
+## On se donne un dataframe constitué des individus et de leur groupe associé
 data_classee <- as.data.frame(cbind(data, groupe))
 
+## On a un summary par groupe
 tapply(data_classee$data, data_classee$groupe, summary)
-tapply(data_classee$data, data_classee$groupe, mean)
 
+## On compte le nombre d'individu par groupe, et leur proportion (on retrouve les proportions du modeles)
+population_par_classe <- count(data_classee, groupe)
+population_par_classe$proportion <- round((population_par_classe$n / length(data))*100, 3)
+population_par_classe
+
+## On peut compter le nombre d'individu par groupe et leur proportion avant le modèle
+pop_classe_avant <- count(sum_gene_df, classe)
+pop_classe_avant$proportion <- round((pop_classe_avant$n / length(data))*100, 3)
+pop_classe_avant
+
+
+## On compte le nombre d'occurence de chaque individus et leur proportion par rapport à la population totale
+## Piste pour amélioration, est ce que on peut retirer les premières gouttelettes ?
+population_par_sumgene <- count(data_classee, data)
+population_par_sumgene$proportion <- round((population_par_sumgene$n / length(data))*100, 3)
+population_par_sumgene
 
 plot_classe <- ggplot(data = data_classee) +
   geom_boxplot(aes(x = factor(groupe), y = data)) +

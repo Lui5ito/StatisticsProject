@@ -4,6 +4,7 @@ library(nloptr) #nolptr
 library(doParallel) #créer les clusters
 library(foreach) #permet le parallélisme
 library(tictoc)
+library(ggplot2)
 
 rm(list=ls())
 set.seed(1664)
@@ -185,7 +186,6 @@ max_index <- 1
 length(resultats[[8]])
 max_lvc <- tail(resultats[[1]][[1]], 1)
 for (i in 2:length(resultats)){
-  print(i)
   if (length(resultats[[i]]) != 0){
     if (tail(resultats[[i]][[1]], 1)>max_lvc) {
       max_lvc <- tail(resultats[[i]][[1]], 1)
@@ -202,4 +202,50 @@ resultats[[max_index]][[4]] ## pour sigma
 resultats[[max_index]][[5]] ## pour pi1
 resultats[[max_index]][[6]] ## pour pi2
 resultats[[max_index]][[7]] ## pour pi3
+
+## On récupère le theta_hat final pour pouvoir classer les individus
+lambda_hat <- tail(resultats[[max_index]][[2]], 1)
+mu_hat <- tail(resultats[[max_index]][[3]], 1)
+sigma_hat <- tail(resultats[[max_index]][[4]], 1)
+pi1_hat <- tail(resultats[[max_index]][[5]], 1)
+pi2_hat <- tail(resultats[[max_index]][[6]], 1)
+pi3_hat <- tail(resultats[[max_index]][[7]], 1)
+
+## Les probabilités sa caculent par le k qui maximise le tik(theta)
+## Il faut donc calculer les tik(theta) pour les individus et tous les groupes
+logphi1 <- dpois(data, lambda_hat, log = TRUE)
+logphi2 <- logspace.sub(pnorm(data+1/2, mean = mu_hat, sd = sigma_hat, log.p = TRUE), pnorm(data-1/2, mean = mu_hat, sd = sigma_hat, log.p = TRUE))
+logphi3 <- logspace.sub(pnorm(data+1/2, mean = 2*mu_hat, sd = sqrt(2)*sigma_hat, log.p = TRUE), pnorm(data-1/2, mean = 2*mu_hat, sd = sqrt(2)*sigma_hat, log.p = TRUE))
+
+ln1 <- log(pi1_hat) + logphi1
+ln2 <- log(pi2_hat) + logphi2
+ln3 <- log(pi3_hat) + logphi3
+
+somme_phi_pondere <- pi1_hat*exp(logphi1) + pi2_hat*exp(logphi2) + pi3_hat*exp(logphi3)
+
+t1 <- pi1_hat*exp(logphi1) / somme_phi_pondere
+t2 <- pi2_hat*exp(logphi2) / somme_phi_pondere
+t3 <- pi3_hat*exp(logphi3) / somme_phi_pondere
+
+proba <- cbind(t1, t2, t3)
+groupe <- max.col(proba)
+
+data_classee <- as.data.frame(cbind(data, groupe))
+
+tapply(data_classee$data, data_classee$groupe, summary)
+tapply(data_classee$data, data_classee$groupe, mean)
+
+
+plot_classe <- ggplot(data = data_classee) +
+  geom_boxplot(aes(x = factor(groupe), y = data)) +
+  scale_x_discrete(breaks = 1:3, labels = c("Groupe 1", "Groupe 2", "Groupe 3")) +
+  #scale_y_continuous (trans='log10') +
+  labs(title = "Etude de la performance des algorithmes d'optimisation",
+       x = "Taille de l'échantillon",
+       y = "Temps de convergence (échelle logarithmique)") +
+  theme(plot.title = element_text(size = 12, face = "bold", hjust = 0.5)) +
+  theme_bw()
+plot_classe
+max(data)
+
 

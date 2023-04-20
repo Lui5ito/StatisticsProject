@@ -50,9 +50,9 @@ nbre_coeurs_voulu <- makeCluster(nbre_de_coeurs_voulu)
 registerDoParallel(nbre_coeurs_voulu)
 
 ## Initialisation des paramètres des lois cible
-lambda_cible <- 3
-mu_cible <- 5050
-sigma_cible <- 1010
+lambda_cible <- 50
+mu_cible <- 100
+sigma_cible <- 10
 
 
 taille_echantillon <- c(10^4)
@@ -79,7 +79,7 @@ all_results_temp <-foreach (j=1:nbre_repetition, .packages = c("DPQ", "nloptr"))
   
   for (i in 1:length(taille_echantillon)) {
     taille_echantillon_en_cours <- taille_echantillon[i]
-    data <- c(rpois(taille_echantillon_en_cours/2, lambda_cible), round(rnorm(taille_echantillon_en_cours/4, mu_cible, sigma_cible)), round(rnorm(taille_echantillon_en_cours/4, 2*mu_cible, sqrt(2)*sigma_cible)))
+    data <- c(rpois(taille_echantillon_en_cours*0.6, lambda_cible), round(rnorm(taille_echantillon_en_cours*0.1, mu_cible, sigma_cible)), round(rnorm(taille_echantillon_en_cours*0.3, 2*mu_cible, sqrt(2)*sigma_cible)))
     
     for (k in 1:length(algorithmes)){
       algo_en_cours <- algorithmes[k]
@@ -185,15 +185,57 @@ summary(resultats_finaux)
 ## On récupère un tableau juste avec la log-vraisemblance complétée
 loglikelihood <- resultats_finaux[1, , , , ]
 loglikelihood
+
 lambda_all <- resultats_finaux[4, , , , ]
 lambda_all
+lambda_liste <- c()
+for (i in 1:length(lambda_all)) {
+  if (!is.na(lambda_all[i])) { if (lambda_all[i] < 51 & lambda_all[i] > 48) {lambda_liste <- c(lambda_liste, lambda_all[i])} }
+}
+mean(lambda_liste)
+sd(lambda_liste)
+
 mu_all <- resultats_finaux[5, , , , ]
 mu_all
+mu_liste <- c()
+for (i in 1:length(mu_all)) {
+  if (!is.na(mu_all[i])) { if (mu_all[i] < 101 & mu_all[i] > 99) {mu_liste <- c(mu_liste, mu_all[i])} }
+}
+mean(mu_liste)
+sd(mu_liste)
+
 sigma_all <- resultats_finaux[6, , , , ]
 sigma_all
+sigma_liste <- c()
+for (i in 1:length(sigma_all)) {
+  if (!is.na(sigma_all[i])) { if (sigma_all[i] < 11 & sigma_all[i] > 9.5) {sigma_liste <- c(sigma_liste, sigma_all[i])} }
+}
+mean(sigma_liste)
+sd(sigma_liste)
+
 pi1_all <- resultats_finaux[7, , , , ]
 pi1_all
+pi1_liste <- c()
+for (i in 1:length(pi1_all)) {
+  if (!is.na(pi1_all[i])) { if (pi1_all[i] < 0.62 & pi1_all[i] > 0.58) {pi1_liste <- c(pi1_liste, pi1_all[i])} }
+}
+mean(pi1_liste)
+sd(pi1_liste)
+
 pi2_all <- resultats_finaux[8, , , , ]
 pi2_all
+pi2_liste <- c()
+for (i in 1:length(pi2_all)) {
+  if (!is.na(pi2_all[i])) { if (pi2_all[i] < 0.11 & pi2_all[i] > 0.09) {pi2_liste <- c(pi2_liste, pi2_all[i])} }
+}
+mean(pi2_liste)
+sd(pi2_liste)
+
 pi3_all <- resultats_finaux[9, , , , ]
 pi3_all
+pi3_liste <- c()
+for (i in 1:length(pi3_all)) {
+  if (!is.na(pi3_all[i])) { if (pi3_all[i] < 0.32 & pi3_all[i] > 0.28) {pi3_liste <- c(pi3_liste, pi3_all[i])} }
+}
+mean(pi3_liste)
+sd(pi3_liste)

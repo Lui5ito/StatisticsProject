@@ -196,12 +196,49 @@ for (i in 2:length(resultats)){
 
 ## Les listes se récupère avec 
 resultats[[max_index]][[1]] ## pour la vraisemblance
+ggplot(as.data.frame(resultats[[max_index]][[1]]), aes(x=seq_along(resultats[[max_index]][[1]]), y=resultats[[max_index]][[1]])) +
+  geom_point(color = "#66CCFF", size = 2.5) +
+  theme_bw() +
+  xlab("Itération") +
+  ylab("log-vraisemblance complétée")
 resultats[[max_index]][[2]] ## pour lambdahttp://127.0.0.1:31587/graphics/115581a2-66b6-4da8-b610-c06496e6b790.png
+ggplot(as.data.frame(resultats[[max_index]][[2]]), aes(x=seq_along(resultats[[max_index]][[2]]), y=resultats[[max_index]][[2]])) +
+  geom_point(color = "#66CCFF", size = 2.5) +
+  theme_bw() +
+  xlab("Itération") +
+  ylab(expression(lambda))
 resultats[[max_index]][[3]] ## pour mu
+ggplot(as.data.frame(resultats[[max_index]][[3]]), aes(x=seq_along(resultats[[max_index]][[3]]), y=resultats[[max_index]][[3]])) +
+  geom_point(color = "#66CCFF", size = 2.5) +
+  theme_bw() +
+  xlab("Itération") +
+  ylab(expression(mu))
 resultats[[max_index]][[4]] ## pour sigma
+ggplot(as.data.frame(resultats[[max_index]][[4]]), aes(x=seq_along(resultats[[max_index]][[4]]), y=resultats[[max_index]][[4]])) +
+  geom_point(color = "#66CCFF", size = 2.5) +
+  theme_bw() +
+  xlab("Itération") +
+  ylab(expression(sigma))
 resultats[[max_index]][[5]] ## pour pi1
+ggplot(as.data.frame(resultats[[max_index]][[5]]), aes(x=seq_along(resultats[[max_index]][[5]]), y=resultats[[max_index]][[5]])) +
+  geom_point(color = "#66CCFF", size = 2.5) +
+  theme_bw() +
+  xlab("Itération") +
+  ylab(expression(pi[1]))
 resultats[[max_index]][[6]] ## pour pi2
+ggplot(as.data.frame(resultats[[max_index]][[6]]), aes(x=seq_along(resultats[[max_index]][[6]]), y=resultats[[max_index]][[6]])) +
+  geom_point(color = "#66CCFF", size = 2.5) +
+  theme_bw() +
+  xlab("Itération") +
+  ylab(expression(pi[2]))
 resultats[[max_index]][[7]] ## pour pi3
+ggplot(as.data.frame(resultats[[max_index]][[7]]), aes(x=seq_along(resultats[[max_index]][[7]]), y=resultats[[max_index]][[7]])) +
+  geom_point(color = "#66CCFF", size = 2.5) +
+  theme_bw() +
+  xlab("Itération") +
+  ylab(expression(pi[3]))
+
+
 
 ## On récupère le theta_hat final pour pouvoir classer les individus
 lambda_hat <- tail(resultats[[max_index]][[2]], 1)
@@ -210,6 +247,102 @@ sigma_hat <- tail(resultats[[max_index]][[4]], 1)
 pi1_hat <- tail(resultats[[max_index]][[5]], 1)
 pi2_hat <- tail(resultats[[max_index]][[6]], 1)
 pi3_hat <- tail(resultats[[max_index]][[7]], 1)
+
+
+## On peut générer un échantillon de notre loi de mélange et tracer son histogramme
+taille_echantillon <- 350000
+echantillon_hat <- c(rpois(taille_echantillon*pi1_hat, lambda_hat+3), round(rnorm(taille_echantillon*pi2_hat, mu_hat, sigma_hat)), round(rnorm(taille_echantillon*pi3_hat, 2*mu_hat, sqrt(2)*sigma_hat)))
+echantillon_hat <- as.data.frame(cbind(echantillon_hat, c(rep(1, taille_echantillon*pi1_hat), rep(2, taille_echantillon*pi2_hat), rep(3, taille_echantillon*pi3_hat))))
+colnames(echantillon_hat) <- c("echantillon", "groupe")
+echantillon_hat <- echantillon_hat[which(echantillon_hat$echantillon > 0),]
+echantillon_hat <- echantillon_hat[sample(nrow(echantillon_hat)),]
+
+ggplot(echantillon_hat, aes(x = seq_along(echantillon), y = echantillon, color = as.factor(groupe))) +
+  geom_point(shape = '.', alpha = 0.4) +
+  scale_y_continuous(trans = 'log10') +
+  theme_bw() +
+  ggtitle("Scatter plot,\n and a first determination of the groups") +
+  xlab("Index") + ylab("Number of transcript") +
+  scale_color_manual(values=c("black", "#66CCFF", "red"))
+
+ggplot(sum_gene_df, aes(x = seq_along(nb_transcrit), y = nb_transcrit)) +
+  geom_point(shape = '.') +
+  scale_y_continuous(trans = 'log10') +
+  theme_bw() +
+  ggtitle("Scatter plot,\n and a first determination of the groups") +
+  xlab("Index") + ylab("Number of transcript")
+
+## Groupe 1
+echantillon_hat_1 <- echantillon_hat[which(echantillon_hat$groupe == 1),]
+echantillon_hat_1 <- subset(echantillon_hat_1, select = -groupe)
+
+data_classee_1 <- data_classee[which(data_classee$groupe == 1),]
+data_classee_1 <- subset(data_classee_1, select = -groupe)
+
+DF1 <- data.frame(variable=rep(c('Echantillon issu de la loi de mélange', 'Données réelles'), each=300000), value=c(echantillon_hat_1$echantillon[1:300000] , data_classee_1$data[1:300000]))
+
+ggplot(DF1) + 
+  stat_ecdf(aes(value, color=variable), size = 1) +
+  scale_color_manual(values=c("red", "#66CCFF")) +
+  theme_bw()
+
+tapply(DF1$value, DF1$variable, summary)
+
+
+## Groupe 2
+echantillon_hat_2 <- echantillon_hat[which(echantillon_hat$groupe == 2),]
+echantillon_hat_2 <- subset(echantillon_hat_2, select = -groupe)
+
+data_classee_2 <- data_classee[which(data_classee$groupe == 2),]
+data_classee_2 <- subset(data_classee_2, select = -groupe)
+
+DF2 <- data.frame(variable=rep(c('Echantillon issu de la loi de mélange', 'Données réelles'), each=300000), value=c(echantillon_hat_2$echantillon[1:300000] , data_classee_2$data[1:300000]))
+
+ggplot(DF2) + 
+  stat_ecdf(aes(value, color=variable), size = 1) +
+  scale_color_manual(values=c("red", "#66CCFF")) +
+  theme_bw()
+
+tapply(DF2$value, DF2$variable, summary)
+
+## Groupe 3
+echantillon_hat_3 <- echantillon_hat[which(echantillon_hat$groupe == 3),]
+echantillon_hat_3 <- subset(echantillon_hat_3, select = -groupe)
+
+data_classee_3 <- data_classee[which(data_classee$groupe == 3),]
+data_classee_3 <- subset(data_classee_3, select = -groupe)
+
+DF3 <- data.frame(variable=rep(c('Echantillon issu de la loi de mélange', 'Données réelles'), each=300000), value=c(echantillon_hat_3$echantillon[1:300000] , data_classee_3$data[1:300000]))
+
+ggplot(DF3) + 
+  stat_ecdf(aes(value, color=variable), size = 1) +
+  scale_color_manual(values=c("red", "#66CCFF")) +
+  theme_bw()
+
+tapply(DF3$value, DF3$variable, summary)
+
+###
+
+DF <- data.frame(variable=rep(c('Echantillon issu de la loi de mélange', 'Données réelles'), each=length(echantillon_hat)), value=c(echantillon_hat$echantillon , data[1:length(echantillon_hat)]))
+
+ggplot(DF) + 
+  stat_ecdf(aes(value, color=variable), size = 1) +
+  scale_color_manual(values=c("red", "#66CCFF")) +
+  theme_bw()
+
+
+
+  ggplot(as.data.frame(echantillon_hat), aes(x = echantillon_hat)) + 
+  stat_ecdf(geom = "point",  color = "red") +
+  labs(title="Cumulative Density Function \nfor Poisson",
+       y = "F(x)", x="x") +
+  theme_bw()
+
+ggplot(as.data.frame(data), aes(x = data)) + 
+  stat_ecdf(geom = "point",  color = "red") +
+  labs(title="Cumulative Density Function \nfor Poisson",
+       y = "F(x)", x="x") +
+  theme_bw()
 
 ## Les probabilités sa caculent par le k qui maximise le tik(theta)
 ## Il faut donc calculer les tik(theta) pour les individus et tous les groupes

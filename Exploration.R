@@ -171,7 +171,7 @@ bp1 <- ggplot(sum_gene_df %>%
   ggtitle("Histogramm plot and \nnp-estimated density for group 1") +
   xlab("Number of transcript") + ylab("Number of goutellette")
 
-data_cdf_poisson = rpois(1000, 1)
+data_cdf_poisson = rpois(1000, 2.5)
 cdf1 <- ggplot(data.frame(data_cdf_poisson), aes(x = data_cdf_poisson)) + 
   stat_ecdf(geom = "point",  color = "red") +
   labs(title="Cumulative Density Function \nfor Poisson",

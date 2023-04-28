@@ -9,14 +9,14 @@ sum_gene_df <- as.data.frame(colSums(gene_expression)) %>%
   rename("nb_transcrit" =`colSums(gene_expression)`) %>% 
   filter(nb_transcrit != 0)
 
-lapoisse <- data.frame(poisson = rpois(450000, 0.8)) %>% group_by(poisson) %>% summarise(number_poisson = n())
-lapoisse <- data.frame(lapoisse[2:10, 2])
-lapoisse <- rbind(as.vector(lapoisse), c(0), c(0), c(0), c(0), c(0), c(0), c(0), c(0), c(0), c(0), c(0), c(0), c(0), c(0), c(0))
+lapoisse <- data.frame(poisson = rpois(450000, 2.18)) %>% group_by(poisson) %>% summarise(number_poisson = n())
+lapoisse <- data.frame(lapoisse[2:15, 2])
+lapoisse <- rbind(lapoisse, c(0), c(0), c(0), c(0), c(0), c(0), c(0), c(0), c(0), c(0), c(0), c(0), c(0), c(0), c(0))
 lapoisse[is.na(lapoisse)] = 0
 super <- data.frame(sum_gene_df %>% filter(nb_transcrit < 25) %>% group_by(nb_transcrit) %>% summarise(number = n()))
-super <- cbind(super, poisson = lapoisse, yend = rep(0,24))
+super <- cbind(super, poisson = lapoisse[1:24,], yend = rep(0,24))
 superplot <- ggplot(data = super,
-                    aes(x = nb_transcrit, y = number_poisson, xend = nb_transcrit, yend = yend)) +
+                    aes(x = nb_transcrit, y = poisson, xend = nb_transcrit, yend = yend)) +
   geom_col(stat='identity', aes(x = nb_transcrit, y = number), 
            binwidth = 2, 
            colour = "#65C6ED", fill = "#75D7FF") +
@@ -27,7 +27,7 @@ superplot <- ggplot(data = super,
   xlab("Nombre de transcrits")
 
 
-ggsave(plot=superplot, filename="poisson.png", width=8, height=6)
+ggsave(plot=superplot, filename="poisson_melange.png", width=8, height=6)
 
 
 

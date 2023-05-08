@@ -184,7 +184,7 @@ save(resultats, file = "resultats_application2.RData")
 ##--------------------------------RESULTATS-----------------------------------##
 ################################################################################
 
-resultats <- readRDS("resultats_application_final.RData")
+resultats <- readRDS("resultats_application3.RData")
 
 ## On veut maintenant récupérer le meilleur des random starts, celui qui a la log-vraisemblance complétée la plus élevée.
 max_index <- 1

@@ -58,10 +58,9 @@ ncol_genes <- gene_expression@Dimnames[[2]] %>% length() %>% as.numeric()
 
 #Ici on veut calculer le nombre de transcrit par goutelette.
 sum_gene_df <- as.data.frame(colSums(gene_expression)) %>% 
-  rename("nb_transcrit" =`colSums(gene_expression)`) %>% 
-  filter(nb_transcrit != 0)
+  rename("nb_transcrit" =`colSums(gene_expression)`)
 
-
+summary(sum_gene_df)
 #plot(sum_gene_df$nb_transcrit)
 
 #plot(sum_gene_df$nb_transcrit, log='y')

@@ -380,21 +380,46 @@ plot_poisson_nbinom <- ggplot(proportion_25, aes(x = nb_transcrit)) +
   geom_col(aes(x = nb_transcrit, y = proportion),just = 0.5, width = 0.99, color = "#65C6ED", fill = "#75D7FF") +
   theme_bw()+
   geom_point(aes(y = poisson*pi1_hat, color = "Fonction de masse de la loi de Poisson"), size=1.5) +
-  stat_function(aes(color= "Densité de la loi de Weibull"),size = 1, fun = function(x) {(dgev(x, loc = alpha_hat, scale = beta_hat, shape = gamma_hat)*pi4_hat)})+
+  stat_function(aes(color= "Densité de la loi GEV"),size = 1, fun = function(x) {(dgev(x, loc = alpha_hat, scale = beta_hat, shape = gamma_hat)*pi4_hat)})+
   ylab("Proportion") +
   xlab("Nombre de transcrits") +
-  scale_color_manual(values = c("Fonction de masse de la loi de Poisson" = "hotpink1", "Fonction de masse de la loi GEV" = "orange"))+
+  scale_color_manual(values = c("Fonction de masse de la loi de Poisson" = "hotpink1", "Densité de la loi GEV" = "orange"))+
   theme(legend.position = "top",
         legend.background = element_rect(fill="white",
                                          size=0.5, linetype="solid",
                                          colour ="#909090")) +
-  theme(legend.position = c(0.8, 0.94),
+  theme(legend.position = c(0.7, 0.94),
         legend.direction = "horizontal")+
   theme(legend.title = element_blank()) +
   labs(title = "Fonction de masse de la loi de Poisson superposées aux données réelles") +
   theme(plot.title = element_text(face = "bold",size = 13, hjust = 0, vjust = 0))
 
 plot_poisson_nbinom
+
+normales_gev <- ggplot(pop_classe_avant %>% filter(nb_transcrit > 50)%>%filter(nb_transcrit < 30000), aes(x = nb_transcrit)) +
+  geom_col(aes(x = nb_transcrit, y = proportion), just = 0.5, width = 0.1, color = "#65C6ED", fill = "#75D7FF") +
+  theme_bw()+
+  stat_function(aes(color= "distribution 1"),size = 1, fun = function(x) {(dnorm(x, mean = mu_hat, sd = sigma_hat)*pi2_hat*500)})+
+  stat_function(aes(color= "distribution 2"), size = 1, fun = function(x) {(dnorm(x, mean = 2*mu_hat, sd = sqrt(2)*sigma_hat)*pi3_hat*5)})+
+  scale_color_manual(name = "Distributions",
+                     values = c("distribution 1" = "red",
+                                "distribution 2" = "darkgreen")) +
+  ylab("Proportion") +
+  xlab("Nombre de transcrits")
+
+normales_gev
+
+
+ggplot(sum_gene_df %>% filter(nb_transcrit > 1000), aes(x = nb_transcrit)) +
+  geom_histogram(aes(x = nb_transcrit), binwidth = 100, color = "#65C6ED", fill = "#75D7FF") +
+  theme_bw()+
+  stat_function(aes(color= "distribution 1"),size = 1, fun = function(x) {(dnorm(x, mean = mu_hat, sd = sigma_hat)*pi2_hat*46000000)})+
+  stat_function(aes(color= "distribution 2"), size = 1, fun = function(x) {(dnorm(x, mean = 2*mu_hat, sd = sqrt(2)*sigma_hat)*pi3_hat*46000000)})+
+  scale_color_manual(name = "Distributions",
+                     values = c("distribution 1" = "red",
+                                "distribution 2" = "darkgreen")) +
+  ylab("Proportion") +
+  xlab("Nombre de transcrits")
 
 ################################################################
 ##----------------------Classification------------------------##

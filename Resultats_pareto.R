@@ -349,6 +349,30 @@ alpha_hat <- tail(resultats[[max_index]][[9]], 1)
 ################################################################
 ##------------------------GRAPHIQUE---------------------------##
 ################################################################
+p <- function(x){
+  (pi2_hat/(pi2_hat+pi3_hat)*dnorm(x, mean = mu_hat, sd = sigma_hat) + pi3_hat/(pi2_hat+pi3_hat)*dnorm(x, mean = 2*mu_hat, sd = sqrt(2)*sigma_hat))
+}
+
+ggplot(sum_gene_df %>% filter(nb_transcrit > 100)%>%filter(nb_transcrit < 50000), aes(x = nb_transcrit))+
+  geom_histogram(aes(y = ..density.., color = "Données"), position = "identity", bins = 100, fill = "#75D7FF")+
+  stat_function(fun = p2, aes(color = 'Deuxième groupe'), size = 1)+
+  stat_function(fun = p3, aes(color = 'Troisième groupe'), size = 1)+
+  stat_function(fun = p, aes(color = 'Mélange'), size = 0.9)+
+  theme_bw()+
+  scale_color_manual(name = "Distributions",
+                     values = c("Deuxième groupe" = "red",
+                                "Troisième groupe" = "darkgreen",
+                                "Mélange" = 'black',
+                                "Données" =  "#65C6ED"))+
+  theme(legend.background = element_rect(fill="white",
+                                         size=1, linetype="solid",
+                                         colour ="#909090"),
+        legend.position = c(0.8, 0.87),
+        legend.title = element_blank())+
+  xlab("Nombre de transcrits") +
+  ylab("Densité")
+
+
 
 pop_classe_avant <- count(sum_gene_df, nb_transcrit)
 pop_classe_avant$proportion <- (pop_classe_avant$n / sum(pop_classe_avant$n))
@@ -359,21 +383,53 @@ plot_poisson_pareto <- ggplot(proportion_25, aes(x = nb_transcrit)) +
   geom_col(aes(x = nb_transcrit, y = proportion),just = 0.5, width = 0.99, color = "#65C6ED", fill = "#75D7FF") +
   theme_bw()+
   geom_point(aes(y = poisson*pi1_hat, color = "Fonction de masse de la loi de Poisson"), size=1.5) +
-  stat_function(aes(color= "Densité de la loi de Weibull"),size = 1, fun = function(x) {(dpareto(x, k = alpha_hat, xmin = 1)*pi4_hat*0.01)})+
+  stat_function(aes(color= "Densité de la loi de Pareto"),size = 1, fun = function(x) {(dpareto(x, k = alpha_hat, xmin = 1)*pi4_hat*0.01)})+
   ylab("Proportion") +
   xlab("Nombre de transcrits") +
-  scale_color_manual(values = c("Fonction de masse de la loi de Poisson" = "hotpink1", "Fonction de masse de la loi GEV" = "orange"))+
+  scale_color_manual(values = c("Fonction de masse de la loi de Poisson" = "hotpink1", "Densité de la loi de Pareto" = "orange"))+
   theme(legend.position = "top",
         legend.background = element_rect(fill="white",
                                          size=0.5, linetype="solid",
                                          colour ="#909090")) +
-  theme(legend.position = c(0.8, 0.94),
-        legend.direction = "horizontal")+
-  theme(legend.title = element_blank()) +
-  labs(title = "Fonction de masse de la loi de Poisson superposées aux données réelles") +
-  theme(plot.title = element_text(face = "bold",size = 13, hjust = 0, vjust = 0))
+  theme(legend.position = c(0.7, 0.9),
+        legend.direction = "vertical")+
+  theme(legend.title = element_blank())
+  #labs(title = "Fonction de masse de la loi de Poisson superposées aux données réelles") +
+  #theme(plot.title = element_text(face = "bold",size = 13, hjust = 0, vjust = 0))
 
 plot_poisson_pareto
+
+normales_pareto <- ggplot(pop_classe_avant %>% filter(nb_transcrit > 50)%>%filter(nb_transcrit < 30000), aes(x = nb_transcrit)) +
+  geom_col(aes(x = nb_transcrit, y = proportion), just = 0.5, width = 0.1, color = "#65C6ED", fill = "#75D7FF") +
+  theme_bw()+
+  stat_function(aes(color= "distribution 1"),size = 1, fun = function(x) {(dnorm(x, mean = mu_hat, sd = sigma_hat)*pi2_hat*5)})+
+  stat_function(aes(color= "distribution 2"), size = 1, fun = function(x) {(dnorm(x, mean = 2*mu_hat, sd = sqrt(2)*sigma_hat)*pi3_hat*5)})+
+  scale_color_manual(name = "Distributions",
+                     values = c("distribution 1" = "red",
+                                "distribution 2" = "darkgreen")) +
+  ylab("Proportion") +
+  xlab("Nombre de transcrits")
+
+normales_pareto
+
+
+ggplot(sum_gene_df %>% filter(nb_transcrit > 500)%>%filter(nb_transcrit < 60000), aes(x = nb_transcrit)) +
+  geom_histogram(aes(x = nb_transcrit), binwidth = 100, color = "#65C6ED", fill = "#75D7FF") +
+  theme_bw()+
+  stat_function(aes(color= "Première normale"),size = 1, fun = function(x) {(dnorm(x, mean = mu_hat, sd = sigma_hat)*pi2_hat*71000000)})+
+  stat_function(aes(color= "Seconde normale"), size = 1, fun = function(x) {(dnorm(x, mean = 2*mu_hat, sd = sqrt(2)*sigma_hat)*pi3_hat*71000000)})+
+  scale_color_manual(name = "Distributions",
+                     values = c("Première normale" = "red",
+                                "Seconde normale" = "darkgreen")) +
+  ylab("Effectif") +
+  theme(legend.position = "top",
+        legend.background = element_rect(fill="white",
+                                         size=0.5, linetype="solid",
+                                         colour ="#909090"))+
+  xlab("Nombre de transcrits") +
+  theme(legend.position = c(0.8, 0.9),
+        legend.direction = "vertical")+
+  theme(legend.title = element_blank())
 
 
 ################################################################
@@ -411,7 +467,7 @@ groupe <- max.col(proba)
 data_classee <- as.data.frame(cbind(data, groupe))
 
 ## On a un summary par groupe
-tapply(data_classee$data, data_classee$groupe, summary)
+tapply(data_classee$data, data_classee$groupe, sd)
 
 ## On compte le nombre d'individu par groupe, et leur proportion (on retrouve les proportions du modeles)
 population_par_classe <- count(data_classee, groupe)

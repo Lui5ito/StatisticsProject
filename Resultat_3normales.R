@@ -5,7 +5,6 @@ library(doParallel) #créer les clusters
 library(foreach) #permet le parallélisme
 library(tictoc) #calcule le temps
 library(ggplot2) #plots
-library(distributionsrd)
 
 rm(list=ls())
 set.seed(1664)
@@ -29,27 +28,32 @@ data <- sum_gene_df[,1]
 ################################################################################
 
 logvraissemblance <- function(params){
-  logphi1 <- dpareto(data, k = params[3], xmin = 1, log = TRUE)
+  logphi1 <- dpois(data, params[3], log = TRUE) - logspace.sub(0, -params[3])
   
   logphi2 <- logspace.sub(pnorm(data+1/2, mean = params[1], sd = params[2], log.p = TRUE), pnorm(data-1/2, mean = params[1], sd = params[2], log.p = TRUE))
   logphi3 <- logspace.sub(pnorm(data+1/2, mean = 2*params[1], sd = sqrt(2)*params[2], log.p = TRUE), pnorm(data-1/2, mean = 2*params[1], sd = sqrt(2)*params[2], log.p = TRUE))
+  logphi4 <- logspace.sub(pnorm(data+1/2, mean = params[4], sd = params[5], log.p = TRUE), pnorm(data-1/2, mean = params[4], sd = params[5], log.p = TRUE))
+  
   
   
   ln1 <- log(pi1_r) + logphi1
   ln2 <- log(pi2_r) + logphi2
   ln3 <- log(pi3_r) + logphi3
+  ln4 <- log(pi4_r) + logphi4
   
-  somme_phi_pondere <- pi1_r*exp(logphi1) + pi2_r*exp(logphi2) + pi3_r*exp(logphi3)
+  somme_phi_pondere <- pi1_r*exp(logphi1) + pi2_r*exp(logphi2) + pi3_r*exp(logphi3) + pi4_r*exp(logphi4)
   
   t1 <- pi1_r*exp(logphi1) / somme_phi_pondere
   t2 <- pi2_r*exp(logphi2) / somme_phi_pondere
   t3 <- pi3_r*exp(logphi3) / somme_phi_pondere
+  t4 <- pi4_r*exp(logphi4) / somme_phi_pondere
   
   lv1 <- sum(t1*ln1)
   lv2 <- sum(t2*ln2)
   lv3 <- sum(t3*ln3)
+  lv4 <- sum(t4*ln4)
   
-  return(lv1+lv2+lv3)
+  return(lv1+lv2+lv3+lv4)
 }
 
 logvraissemblance_pour_nloptr <- function(params){return(-logvraissemblance(params))}
@@ -66,7 +70,7 @@ nbre_coeurs_voulu <- makeCluster(pourcentage_des_coeurs_voulu)
 registerDoParallel(nbre_coeurs_voulu)
 
 nbre_random_start <- 30 #### On prend plus que 2x le nombre de paramètres car on a un échantillon dispoportionné
-nbre_parametre_interet <- 7 #### log-vraisemblance complétée, mu, sigma, pi1, pi2, pi3, alpha
+nbre_parametre_interet <- 10 #### log-vraisemblance complétée, lambda, mu, sigma, pi1, pi2, pi3, pi4, alpha, beta
 
 
 ## Initialisation de tous ce qui est statique
@@ -77,7 +81,7 @@ tic("Application")
 ## Cette boucle random start EST l'algorithme EM
 ## resultats est une liste contenant chaque random start. 
 ## Un random start est une liste contenant des vecteurs qui contiennent eux même les itérations de chaque paramètre d'interêt.
-resultats <- foreach (i=1:nbre_random_start, .packages=c("DPQ", "nloptr", "distributionsrd")) %dopar% {
+resultats <- foreach (i=1:nbre_random_start, .packages=c("DPQ", "nloptr", "VaRES")) %dopar% {
   
   ## On setseed à chaque tour pour changer les initilisations.
   set.seed(i)
@@ -86,79 +90,100 @@ resultats <- foreach (i=1:nbre_random_start, .packages=c("DPQ", "nloptr", "distr
   ma_liste <- NULL
   
   ## (ré-)Initialisation des suivis des paramètres d'interets
+  suite_lambda <- c()
   suite_mu <- c()
   suite_sigma <- c()
   suite_pi1 <- c()
   suite_pi3 <- c()
   suite_pi2 <- c()
+  suite_pi4 <- c()
   suite_alpha <- c()
+  suite_beta <- c()
   Lvc <- c()
   
   
   ## Initialisation aléatoire des paramètres
+  lambda_r <- data[sample(1:n, 1)]
   mu_r <- data_sup_1000[sample(1:n_sup_1000, 1)] 
   sigma_r <- data_sup_1000[sample(1:n_sup_1000, 1)]
   alpha_r <- data[sample(1:n, 1)]
-  pi1_r <- 1/3
-  pi2_r <- 1/3
-  pi3_r <- 1/3
+  beta_r <- data_sup_1000[sample(1:n_sup_1000, 1)]
+  pi1_r <- 1/4
+  pi2_r <- 1/4
+  pi3_r <- 1/4
+  pi4_r <- 1/4
   
   ## Première instance des paramètres d'interets
+  suite_lambda <- c(lambda_r)
   suite_sigma <- c(sigma_r)
   suite_mu <- c(mu_r)
   suite_pi1 <- c(pi1_r)
   suite_pi2 <- c(pi2_r)
   suite_pi3 <- c(pi3_r)
+  suite_pi4 <- c(pi4_r)
   suite_alpha <- c(alpha_r)
+  suite_beta <- c(beta_r)
   
   t <- try(repeat{
     
     ## On a bseoin de ces calculs pour lambda_r
-    logphi1 <- dpareto(data, k = alpha_r, xmin = 1, log = TRUE)
+    logphi1 <- dpois(data, lambda_r, log = TRUE)  - logspace.sub(0, -lambda_r)
+
     logphi2 <- logspace.sub(pnorm(data+1/2, mean = mu_r, sd = sigma_r, log.p = TRUE), pnorm(data-1/2, mean = mu_r, sd = sigma_r, log.p = TRUE))
     logphi3 <- logspace.sub(pnorm(data+1/2, mean = 2*mu_r, sd = sqrt(2)*sigma_r, log.p = TRUE), pnorm(data-1/2, mean = 2*mu_r, sd = sqrt(2)*sigma_r, log.p = TRUE))
+    logphi4 <- logspace.sub(pnorm(data+1/2, mean = alpha_r, sd = beta_r, log.p = TRUE), pnorm(data-1/2, mean = alpha_r, sd = beta_r, log.p = TRUE))
     
     ln1 <- log(pi1_r) + logphi1
     ln2 <- log(pi2_r) + logphi2
     ln3 <- log(pi3_r) + logphi3
+    ln4 <- log(pi4_r) + logphi4
     
-    somme_phi_pondere <- pi1_r*exp(logphi1) + pi2_r*exp(logphi2) + pi3_r*exp(logphi3)
+    somme_phi_pondere <- pi1_r*exp(logphi1) + pi2_r*exp(logphi2) + pi3_r*exp(logphi3) + pi4_r*exp(logphi4)
     
     t1 <- pi1_r*exp(logphi1) / somme_phi_pondere
     t2 <- pi2_r*exp(logphi2) / somme_phi_pondere
     t3 <- pi3_r*exp(logphi3) / somme_phi_pondere
+    t4 <- pi4_r*exp(logphi4) / somme_phi_pondere
     
     lv1 <- sum(t1*ln1)
     lv2 <- sum(t2*ln2)
     lv3 <- sum(t3*ln3)
+    lv4 <- sum(t4*ln4)
     
     T1 <- sum(t1)
     T2 <- sum(t2)
     T3 <- sum(t3)
+    T4 <- sum(t4)
     
     ## On doit calculer la log-vraisemblance à chaque itération puisque c'est notre porte de sortie de la boucle repeat
-    LV_r <- lv1+lv2+lv3
+    LV_r <- lv1+lv2+lv3+lv4
     ## Sauvegarde de la valeur de la log-vraisemblance complétée à cette instant
     Lvc <- c(Lvc, LV_r)
     
     ## On optimise avec l'algorithme Bobyqat
-    res_nlopt <- nloptr(x0 = c(mu_r, sigma_r, alpha_r), eval_f = logvraissemblance_pour_nloptr, opts = list(algorithm = "NLOPT_LN_BOBYQA", maxeval = 10000, tol_rel=1e-15, xtol_abs=1e-15), lb = c(1, 1, 0))
+    res_nlopt <- nloptr(x0 = c(mu_r, sigma_r, lambda_r, alpha_r, beta_r), eval_f = logvraissemblance_pour_nloptr, opts = list(algorithm = "NLOPT_LN_BOBYQA", maxeval = 10000, tol_rel=1e-15, xtol_abs=1e-15), lb = c(1, 1, 0.1, 0, 0))
     
     ## Mises à jours des paramètres
     mu_r <- res_nlopt$solution[1]
     sigma_r <- res_nlopt$solution[2]
-    alpha_r <- res_nlopt$solution[3]
+    lambda_r <- res_nlopt$solution[3]
+    alpha_r <- res_nlopt$solution[4]
+    beta_r <- res_nlopt$solution[5]
     pi1_r <- T1/n
     pi2_r <- T2/n
     pi3_r <- T3/n
+    pi4_r <- T4/n
     
     ##Sauvegarde des historiques des paramètres d'interes
+    suite_lambda <- c(suite_lambda, lambda_r)
     suite_mu <- c(suite_mu, mu_r)
     suite_sigma <- c(suite_sigma, sigma_r)
     suite_pi1 <- c(suite_pi1, pi1_r)
     suite_pi2 <- c(suite_pi2, pi2_r)
     suite_pi3 <- c(suite_pi3, pi3_r)
     suite_alpha <- c(suite_alpha, alpha_r)
+    suite_beta <- c(suite_beta, beta_r)
+    suite_pi4 <- c(suite_pi4, pi4_r)
     
     
     
@@ -170,20 +195,20 @@ resultats <- foreach (i=1:nbre_random_start, .packages=c("DPQ", "nloptr", "distr
   if(!(inherits(t, "try-error"))){
     
     ## On sauvegarde alors tous les paramètres d'intérêts finaux de notre algorithme EM
-    Lvc <- c(Lvc, logvraissemblance(c(mu_r, sigma_r, alpha_r))) #Pour avoir autant de points que les paramètres
-    ma_liste <- list(logvraisemblance  = Lvc, mu = suite_mu, sigma = suite_sigma, pi1 = suite_pi1, pi2 = suite_pi2, pi3 = suite_pi3, alpha = suite_alpha)
+    Lvc <- c(Lvc, logvraissemblance(c(mu_r, sigma_r, lambda_r, alpha_r, beta_r))) #Pour avoir autant de points que les paramètres
+    ma_liste <- list(logvraisemblance  = Lvc, lambda = suite_lambda, mu = suite_mu, sigma = suite_sigma, pi1 = suite_pi1, pi2 = suite_pi2, pi3 = suite_pi3, pi4 = suite_pi4, alpha = suite_alpha, beta = suite_beta)
   }
   return (ma_liste)
 }
 toc()
 stopCluster(nbre_coeurs_voulu)
 summary(resultats)
-saveRDS(resultats, file = "resultats_application_pareto_sans_poisson.RData")
+saveRDS(resultats, file = "resultats_application_3normales.RData")
 ################################################################################
 ##--------------------------------RESULTATS-----------------------------------##
 ################################################################################
 
-resultats <- readRDS("resultats_application_pareto_sans_poisson.RData")
+resultats <- readRDS("resultats_application_3normales.RData")
 
 ## On veut maintenant récupérer le meilleur des random starts, celui qui a la log-vraisemblance complétée la plus élevée.
 max_index <- 1
@@ -211,9 +236,18 @@ vrai <- ggplot(as.data.frame(resultats[[max_index]][[1]][1:16]), aes(x=seq_along
   ylab("log-vraisemblance complétée")
 ggsave(plot=vrai, filename="iteration_lvc.png", width=8, height=5)
 
-## mu
+## lambda
 resultats[[max_index]][[2]]
-mu <- ggplot(as.data.frame(resultats[[max_index]][[2]]), aes(x=seq_along(resultats[[max_index]][[2]]), y=resultats[[max_index]][[2]])) +
+lamb <- ggplot(as.data.frame(resultats[[max_index]][[2]]), aes(x=seq_along(resultats[[max_index]][[2]]), y=resultats[[max_index]][[2]])) +
+  geom_point(color = "#21ADE5", size = 2.5) +
+  theme_bw() +
+  xlab("Itération") +
+  ylab(expression(lambda))
+ggsave(plot=lamb, filename="iteration_lambda.png", width=8, height=5)
+
+## mu
+resultats[[max_index]][[3]]
+mu <- ggplot(as.data.frame(resultats[[max_index]][[3]]), aes(x=seq_along(resultats[[max_index]][[3]]), y=resultats[[max_index]][[3]])) +
   geom_point(color = "#21ADE5", size = 2.5) +
   theme_bw() +
   xlab("Itération") +
@@ -221,8 +255,8 @@ mu <- ggplot(as.data.frame(resultats[[max_index]][[2]]), aes(x=seq_along(resulta
 ggsave(plot=mu, filename="iteration_mu.png", width=8, height=5)
 
 ## sigma
-resultats[[max_index]][[3]] ## pour sigma
-sig <- ggplot(as.data.frame(resultats[[max_index]][[3]]), aes(x=seq_along(resultats[[max_index]][[3]]), y=resultats[[max_index]][[3]])) +
+resultats[[max_index]][[4]] ## pour sigma
+sig <- ggplot(as.data.frame(resultats[[max_index]][[4]]), aes(x=seq_along(resultats[[max_index]][[4]]), y=resultats[[max_index]][[4]])) +
   geom_point(color = "#21ADE5", size = 2.5) +
   theme_bw() +
   xlab("Itération") +
@@ -230,41 +264,55 @@ sig <- ggplot(as.data.frame(resultats[[max_index]][[3]]), aes(x=seq_along(result
 ggsave(plot=sig, filename="iteration_sigma.png", width=8, height=5)
 
 ## alpha
-resultats[[max_index]][[7]]
-alpha <- ggplot(as.data.frame(resultats[[max_index]][[7]]), aes(x=seq_along(resultats[[max_index]][[7]]), y=resultats[[max_index]][[7]])) +
+resultats[[max_index]][[9]]
+alpha <- ggplot(as.data.frame(resultats[[max_index]][[9]]), aes(x=seq_along(resultats[[max_index]][[9]]), y=resultats[[max_index]][[9]])) +
   geom_point(color = "#21ADE5", size = 2.5) +
   theme_bw() +
   xlab("Itération") +
   ylab(expression(alpha))
 
+## beta
+resultats[[max_index]][[10]]
+beta <- ggplot(as.data.frame(resultats[[max_index]][[10]]), aes(x=seq_along(resultats[[max_index]][[10]]), y=resultats[[max_index]][[10]])) +
+  geom_point(color = "#21ADE5", size = 2.5) +
+  theme_bw() +
+  xlab("Itération") +
+  ylab(expression(beta))
 
 ## pi1
-resultats[[max_index]][[4]]
-ggplot(as.data.frame(resultats[[max_index]][[4]]), aes(x=seq_along(resultats[[max_index]][[4]]), y=resultats[[max_index]][[4]])) +
+resultats[[max_index]][[5]]
+ggplot(as.data.frame(resultats[[max_index]][[5]]), aes(x=seq_along(resultats[[max_index]][[5]]), y=resultats[[max_index]][[5]])) +
   geom_point(color = "#21ADE5", size = 2.5) +
   theme_bw() +
   xlab("Itération") +
   ylab(expression(pi[1]))
 
 ## pi2
-resultats[[max_index]][[5]] ## pour pi2
-ggplot(as.data.frame(resultats[[max_index]][[5]]), aes(x=seq_along(resultats[[max_index]][[5]]), y=resultats[[max_index]][[5]])) +
+resultats[[max_index]][[6]] ## pour pi2
+ggplot(as.data.frame(resultats[[max_index]][[6]]), aes(x=seq_along(resultats[[max_index]][[6]]), y=resultats[[max_index]][[6]])) +
   geom_point(color = "#21ADE5", size = 2.5) +
   theme_bw() +
   xlab("Itération") +
   ylab(expression(pi[2]))
 
 ## pi3
-resultats[[max_index]][[6]] ## pour pi3
-ggplot(as.data.frame(resultats[[max_index]][[6]]), aes(x=seq_along(resultats[[max_index]][[6]]), y=resultats[[max_index]][[6]])) +
+resultats[[max_index]][[7]] ## pour pi3
+ggplot(as.data.frame(resultats[[max_index]][[7]]), aes(x=seq_along(resultats[[max_index]][[7]]), y=resultats[[max_index]][[7]])) +
   geom_point(color = "#21ADE5", size = 2.5) +
   theme_bw() +
   xlab("Itération") +
   ylab(expression(pi[3]))
 
+## pi4
+resultats[[max_index]][[8]] ## pour pi3
+ggplot(as.data.frame(resultats[[max_index]][[8]]), aes(x=seq_along(resultats[[max_index]][[8]]), y=resultats[[max_index]][[8]])) +
+  geom_point(color = "#21ADE5", size = 2.5) +
+  theme_bw() +
+  xlab("Itération") +
+  ylab(expression(pi[4]))
 
 ## plot des proportions ensemble
-super <- data.frame(pi1 = resultats[[max_index]][[4]], pi2 = resultats[[max_index]][[5]], pi3 = resultats[[max_index]][[6]])
+super <- data.frame(pi1 = resultats[[max_index]][[5]], pi2 = resultats[[max_index]][[6]], pi3 = resultats[[max_index]][[7]], pi4 = resultats[[max_index]][[8]])
 super <- melt(super)
 iteration <- c(1:20)
 super <- cbind(super, iteration)
@@ -274,7 +322,7 @@ propplot <- ggplot(super, aes(x = iteration, y = value, colour = variable)) +
   theme_bw() +
   xlab("Itération") +
   ylab("Proportion des groupes") +
-  scale_colour_manual(values=c("hotpink1", "red", "darkgreen"), labels = c("Groupe 1", "Groupe 2", "Groupe 3")) +
+  scale_colour_manual(values=c("hotpink1", "red", "darkgreen", "yellow"), labels = c("Groupe 1", "Groupe 2", "Groupe 3")) +
   theme(legend.position="top", legend.box = "horizontal") +
   theme(legend.background = element_rect(fill="white",
                                          size=0.5, linetype="solid", 
@@ -290,97 +338,88 @@ ggsave(plot=propplot, filename="propplot.png", width=8, height=6)
 ################################################################
 
 ## On récupère le theta_hat final pour pouvoir classer les individus
-mu_hat <- tail(resultats[[max_index]][[2]], 1)
-sigma_hat <- tail(resultats[[max_index]][[3]], 1)
-pi1_hat <- tail(resultats[[max_index]][[4]], 1)
-pi2_hat <- tail(resultats[[max_index]][[5]], 1)
-pi3_hat <- tail(resultats[[max_index]][[6]], 1)
-alpha_hat <- tail(resultats[[max_index]][[7]], 1)
+lambda_hat <- tail(resultats[[max_index]][[2]], 1)
+mu_hat <- tail(resultats[[max_index]][[3]], 1)
+sigma_hat <- tail(resultats[[max_index]][[4]], 1)
+pi1_hat <- tail(resultats[[max_index]][[5]], 1)
+pi2_hat <- tail(resultats[[max_index]][[6]], 1)
+pi3_hat <- tail(resultats[[max_index]][[7]], 1)
+pi4_hat <- tail(resultats[[max_index]][[8]], 1)
+alpha_hat <- tail(resultats[[max_index]][[9]], 1)
+beta_hat <- tail(resultats[[max_index]][[10]], 1)
 
 ################################################################
 ##------------------------GRAPHIQUE---------------------------##
 ################################################################
-
-
-p <- function(x){
-  (pi2_hat/(pi2_hat+pi3_hat)*dnorm(x, mean = mu_hat, sd = sigma_hat) + pi3_hat/(pi2_hat+pi3_hat)*dnorm(x, mean = 2*mu_hat, sd = sqrt(2)*sigma_hat))
-}
-
-ggplot(sum_gene_df %>% filter(nb_transcrit > 100)%>%filter(nb_transcrit < 50000), aes(x = nb_transcrit))+
-  geom_histogram(aes(y = ..density.., color = "Données"), position = "identity", bins = 100, fill = "#75D7FF")+
-  stat_function(fun = p2, aes(color = 'Deuxième groupe'), size = 1)+
-  stat_function(fun = p3, aes(color = 'Troisième groupe'), size = 1)+
-  stat_function(fun = p, aes(color = 'Mélange'), size = 1.1)+
-  scale_color_manual(name = "Distributions",
-                     values = c("Deuxième groupe" = "red",
-                                "Troisième groupe" = "darkgreen",
-                                "Mélange" = 'black',
-                                "Données" =  "#65C6ED"))+
-  theme(legend.background = element_rect(fill="white",
-                                         size=1, linetype="solid",
-                                         colour ="#909090"),
-        legend.position = c(0.8, 0.9),
-        legend.direction = "vertical",
-        legend.title = element_blank())+
-  xlab("Nombre de transcrits") +
-  ylab("Densité")+
-  theme_bw()
-
-
 pop_classe_avant <- count(sum_gene_df, nb_transcrit)
 pop_classe_avant$proportion <- (pop_classe_avant$n / sum(pop_classe_avant$n))
 proportion_25 <- pop_classe_avant %>% filter(nb_transcrit < 25)
 
-plot_pareto <- ggplot(proportion_25, aes(x = nb_transcrit)) +
-  geom_col(aes(x = nb_transcrit, y = proportion),just = 0.5, width = 0.99, color = "#65C6ED", fill = "#75D7FF") +
+
+ggplot(sum_gene_df %>% filter(nb_transcrit > 20)%>%filter(nb_transcrit < 3000), aes(x = nb_transcrit)) +
+  geom_histogram(aes(x = nb_transcrit), color = "#65C6ED", fill = "#75D7FF") +
   theme_bw()+
-  stat_function(aes(color= "Densité de la loi de Pareto"),size = 1, fun = function(x) {(dpareto(x, k = alpha_hat, xmin = 1)*pi1_hat)})+
+  #geom_point(aes(y = poisson*pi1_hat, color = "Fonction de masse de la loi de Poisson"), size=1.5) +
+  stat_function(aes(color= "Densité de la loi normale"),size = 1, fun = function(x) {(dnorm(x, mean = alpha_hat, sd = beta_hat)*pi4_hat*60000000)})+
+  stat_function(aes(color= "Fonction de masse de la loi de Poisson"),size = 1, fun = function(x) {(dnorm(x, mean = mu_hat, sd = sigma_hat)*pi2_hat*1000000000)})+
   ylab("Proportion") +
   xlab("Nombre de transcrits") +
-  scale_color_manual(values = c("Densité de la loi de Pareto" = "hotpink"))+
+  scale_color_manual(values = c("Fonction de masse de la loi de Poisson" = "hotpink1", "Densité de la loi normale" = "#efd970"))+
   theme(legend.position = "top",
         legend.background = element_rect(fill="white",
                                          size=0.5, linetype="solid",
                                          colour ="#909090")) +
-  theme(legend.position = c(0.8, 0.94),
-        legend.direction = "horizontal")+
+  theme(legend.position = c(0.63, 0.95),
+        legend.direction = "vertical")+
   theme(legend.title = element_blank())
-  #labs(title = "Fonction de masse de la loi de Pareto superposées aux données réelles") +
-  #theme(plot.title = element_text(face = "bold",size = 13, hjust = 0, vjust = 0))
 
-plot_pareto
 
-normales_pareto <- ggplot(pop_classe_avant %>% filter(nb_transcrit > 50)%>%filter(nb_transcrit < 30000), aes(x = nb_transcrit)) +
+
+proportion_25$poisson <- exp(dpois(1:24, lambda_hat, log = TRUE)  - logspace.sub(0, -lambda_hat))
+
+plot_poisson_norm <- ggplot(proportion_25, aes(x = nb_transcrit)) +
+  geom_col(aes(x = nb_transcrit, y = proportion),just = 0.5, width = 0.99, color = "#65C6ED", fill = "#75D7FF") +
+  theme_bw()+
+  geom_point(aes(y = poisson*pi1_hat, color = "Fonction de masse de la loi de Poisson"), size=1.5) +
+  stat_function(aes(color= "Densité de la loi normale"),size = 1, fun = function(x) {(dnorm(x, mean = alpha_hat, sd = beta_hat)*pi4_hat)})+
+  ylab("Proportion") +
+  xlab("Nombre de transcrits") +
+  scale_color_manual(values = c("Fonction de masse de la loi de Poisson" = "hotpink1", "Densité de la loi normale" = "#efd970"))+
+  theme(legend.position = "top",
+        legend.background = element_rect(fill="white",
+                                         size=0.5, linetype="solid",
+                                         colour ="#909090")) +
+  theme(legend.position = c(0.73, 0.9),
+        legend.direction = "vertical")+
+  theme(legend.title = element_blank())
+
+
+plot_poisson_norm
+ggsave(plot=plot_poisson_nbinom, filename="plot_poisson_nbinom.png", width=8, height=5)
+
+
+ggplot(pop_classe_avant %>% filter(nb_transcrit > 50)%>%filter(nb_transcrit < 30000), aes(x = nb_transcrit)) +
   geom_col(aes(x = nb_transcrit, y = proportion), just = 0.5, width = 0.1, color = "#65C6ED", fill = "#75D7FF") +
   theme_bw()+
-  stat_function(aes(color= "distribution 1"),size = 1, fun = function(x) {(dnorm(x, mean = mu_hat, sd = sigma_hat)*pi2_hat*5)})+
-  stat_function(aes(color= "distribution 2"), size = 1, fun = function(x) {(dnorm(x, mean = 2*mu_hat, sd = sqrt(2)*sigma_hat)*pi3_hat*5)})+
+  stat_function(aes(color= "distribution 1"),size = 1, fun = function(x) {(dnorm(x, mean = mu_hat, sd = sigma_hat)*pi2_hat*10)})+
+  stat_function(aes(color= "distribution 2"), size = 1, fun = function(x) {(dnorm(x, mean = 2*mu_hat, sd = sqrt(2)*sigma_hat)*pi3_hat*10)})+
   scale_color_manual(name = "Distributions",
                      values = c("distribution 1" = "red",
                                 "distribution 2" = "darkgreen")) +
   ylab("Proportion") +
   xlab("Nombre de transcrits")
 
-normales_pareto
-
-
 ggplot(sum_gene_df %>% filter(nb_transcrit > 500)%>%filter(nb_transcrit < 60000), aes(x = nb_transcrit)) +
   geom_histogram(aes(x = nb_transcrit), binwidth = 100, color = "#65C6ED", fill = "#75D7FF") +
   theme_bw()+
-  stat_function(aes(color= "Première normale"),size = 1, fun = function(x) {(dnorm(x, mean = mu_hat, sd = sigma_hat)*pi2_hat*51000000)})+
-  stat_function(aes(color= "Seconde normale"), size = 1, fun = function(x) {(dnorm(x, mean = 2*mu_hat, sd = sqrt(2)*sigma_hat)*pi3_hat*51000000)})+
+  stat_function(aes(color= "distribution 1"),size = 1, fun = function(x) {(dnorm(x, mean = mu_hat, sd = sigma_hat)*pi2_hat*500000000)})+
+  stat_function(aes(color= "distribution 2"), size = 1, fun = function(x) {(dnorm(x, mean = 2*mu_hat, sd = sqrt(2)*sigma_hat)*pi3_hat*500000000)})+
   scale_color_manual(name = "Distributions",
-                     values = c("Première normale" = "red",
-                                "Seconde normale" = "darkgreen")) +
-  ylab("Effectif") +
-  theme(legend.position = "top",
-        legend.background = element_rect(fill="white",
-                                         size=0.5, linetype="solid",
-                                         colour ="#909090"))+
-  xlab("Nombre de transcrits") +
-  theme(legend.position = c(0.8, 0.9),
-        legend.direction = "vertical")+
-  theme(legend.title = element_blank())
+                     values = c("distribution 1" = "red",
+                                "distribution 2" = "darkgreen")) +
+  ylab("Proportion") +
+  xlab("Nombre de transcrits")
+
 
 ################################################################
 ##----------------------Classification------------------------##
@@ -388,24 +427,27 @@ ggplot(sum_gene_df %>% filter(nb_transcrit > 500)%>%filter(nb_transcrit < 60000)
 
 ## Les probabilités sa caculent par le k qui maximise le tik(theta)
 ## Il faut donc calculer les tik(theta) pour les individus et tous les groupes
-logphi1 <- dpareto(data, k = alpha_hat, xmin = 1, log = TRUE)
+logphi1 <- dpois(data, lambda_hat, log = TRUE)   - logspace.sub(0, -lambda_hat)
 logphi2 <- logspace.sub(pnorm(data+1/2, mean = mu_hat, sd = sigma_hat, log.p = TRUE), pnorm(data-1/2, mean = mu_hat, sd = sigma_hat, log.p = TRUE))
 logphi3 <- logspace.sub(pnorm(data+1/2, mean = 2*mu_hat, sd = sqrt(2)*sigma_hat, log.p = TRUE), pnorm(data-1/2, mean = 2*mu_hat, sd = sqrt(2)*sigma_hat, log.p = TRUE))
+logphi4 <- logspace.sub(pnorm(data+1/2, mean = alpha_hat, sd = beta_hat, log.p = TRUE), pnorm(data-1/2, mean = alpha_hat, sd = beta_hat, log.p = TRUE))
 
 
 ln1 <- log(pi1_hat) + logphi1
 ln2 <- log(pi2_hat) + logphi2
 ln3 <- log(pi3_hat) + logphi3
+ln4 <- log(pi4_hat) + logphi4
 
-somme_phi_pondere <- pi1_hat*exp(logphi1) + pi2_hat*exp(logphi2) + pi3_hat*exp(logphi3)
+somme_phi_pondere <- pi1_hat*exp(logphi1) + pi2_hat*exp(logphi2) + pi3_hat*exp(logphi3) +pi4_hat*exp(logphi4)
 
 t1 <- pi1_hat*exp(logphi1) / somme_phi_pondere
 t2 <- pi2_hat*exp(logphi2) / somme_phi_pondere
 t3 <- pi3_hat*exp(logphi3) / somme_phi_pondere
+t4 <- pi4_hat*exp(logphi4) / somme_phi_pondere
 
 
 ## On regroupe les probas de chaque indivdus pour chaque groupe
-proba <- cbind(t1, t2, t3)
+proba <- cbind(t1, t2, t3, t4)
 
 ## On créé la liste des groupes attribués à chaque individus
 groupe <- max.col(proba)
@@ -454,7 +496,7 @@ plot_classe
 
 ## On peut générer un échantillon de notre loi de mélange et tracer son histogramme
 taille_echantillon <- 350000
-echantillon_hat <- c(rpois(taille_echantillon*pi1_hat, lambda_hat), round(rnorm(taille_echantillon*pi2_hat, mu_hat, sigma_hat)), round(rnorm(taille_echantillon*pi3_hat, 2*mu_hat, sqrt(2)*sigma_hat)))
+echantillon_hat <- c(rpois(taille_echantillon*pi1_hat, lambda_hat+3), round(rnorm(taille_echantillon*pi2_hat, mu_hat, sigma_hat)), round(rnorm(taille_echantillon*pi3_hat, 2*mu_hat, sqrt(2)*sigma_hat)))
 echantillon_hat <- as.data.frame(cbind(echantillon_hat, c(rep(1, taille_echantillon*pi1_hat), rep(2, taille_echantillon*pi2_hat), rep(3, taille_echantillon*pi3_hat))))
 colnames(echantillon_hat) <- c("echantillon", "groupe")
 echantillon_hat <- echantillon_hat[which(echantillon_hat$echantillon > 0),]

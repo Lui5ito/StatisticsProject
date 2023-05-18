@@ -160,13 +160,13 @@ toc()
 stopCluster(nbre_coeurs_voulu)
 
 ## On sauvagarde le résultat de l'algorithme
-saveRDS(resultats, file = "resultats_application.RData")
+saveRDS(resultats, file = "resultats_poisson_normales.RData")
 
 ################################################################################
 ##--------------------------------RESULTATS-----------------------------------##
 ################################################################################
 
-resultats <- readRDS("resultats_application_zero.RData")
+resultats <- readRDS("resultats_poisson_normales.RData")
 
 ## On veut maintenant récupérer le meilleur des random starts, celui qui a la log-vraisemblance complétée la plus élevée.
 max_index <- 1

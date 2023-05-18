@@ -379,6 +379,24 @@ graph_groupe_1
 ggsave(plot=graph_groupe_1, filename="images/poisson_normales/graph_groupe_1.png", width=8, height=6)
 
 
+## Nuage de points issus d'une simulation
+taille_echantillon <- 350000
+echantillon_hat <- c(round(rpois(taille_echantillon*pi1_hat, lambda = alpha_hat)), round(rnorm(taille_echantillon*pi2_hat, mean = mu_hat, sd = sigma_hat)), round(rnorm(taille_echantillon*pi3_hat, mean = 2*mu_hat, sd = sqrt(2)*sigma_hat)))
+echantillon_hat <- as.data.frame(cbind(echantillon_hat, c(rep(1, taille_echantillon*pi1_hat), rep(2, taille_echantillon*pi2_hat), rep(3, taille_echantillon*pi3_hat))))
+colnames(echantillon_hat) <- c("echantillon", "groupe")
+echantillon_hat <- echantillon_hat[which(echantillon_hat$echantillon > 0),]
+echantillon_hat <- echantillon_hat[sample(nrow(echantillon_hat)),]
+
+nuage_points_simulation <- ggplot(echantillon_hat, aes(x = seq_along(echantillon), y = echantillon)) +
+  geom_point(shape = '.') +
+  scale_y_log10(limits = c(NA, 10^5)) +
+  theme_bw() +
+  ggtitle("Nuage de points d'une simulation") +
+  xlab("Index") + ylab("Nombre de transcrits")
+
+nuage_points_simulation
+ggsave(plot=nuage_points_simulation, filename="images/poisson_normales/nuage_points_simulation.png", width=6, height=6)
+
 ################################################################
 ##----------------------Classification------------------------##
 ################################################################

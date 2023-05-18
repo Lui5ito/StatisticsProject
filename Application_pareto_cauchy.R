@@ -193,7 +193,7 @@ saveRDS(resultats, file = "resultats_pareto_cauchy.RData")
 ##--------------------------------RESULTATS-----------------------------------##
 ################################################################################
 
-resultats <- readRDS("Ok/Resultats/resultats_pareto_cauchy.RData")
+resultats <- readRDS("Resultats/resultats_pareto_cauchy.RData")
 
 ## On veut maintenant récupérer le meilleur des random starts, celui qui a la log-vraisemblance complétée la plus élevée.
 max_index <- 1
@@ -213,12 +213,12 @@ for (i in 2:length(resultats)){
 
 ## log-vraisemblance complétée
 resultats[[max_index]][[1]] 
-vrai <- ggplot(as.data.frame(resultats[[max_index]][[1]][1:16]), aes(x=seq_along(resultats[[max_index]][[1]][1:16]), y=resultats[[max_index]][[1]][1:16])) +
+lvc <- ggplot(as.data.frame(resultats[[max_index]][[1]][1:16]), aes(x=seq_along(resultats[[max_index]][[1]][1:16]), y=resultats[[max_index]][[1]][1:16])) +
   geom_point(color = "#21ADE5", size = 2.5) +
   theme_bw() +
   xlab("Itération") +
   ylab("log-vraisemblance complétée")
-ggsave(plot=vrai, filename="iteration_lvc.png", width=8, height=5)
+ggsave(plot=lvc, filename="images/pareto_cauchy/iteration_lvc.png", width=8, height=5)
 
 ## mu
 resultats[[max_index]][[2]]
@@ -227,7 +227,7 @@ mu <- ggplot(as.data.frame(resultats[[max_index]][[2]]), aes(x=seq_along(resulta
   theme_bw() +
   xlab("Itération") +
   ylab(expression(mu))
-ggsave(plot=mu, filename="iteration_mu.png", width=8, height=5)
+ggsave(plot=mu, filename="images/pareto_cauchy/iteration_mu.png", width=8, height=5)
 
 ## sigma
 resultats[[max_index]][[3]] ## pour sigma
@@ -236,7 +236,7 @@ sig <- ggplot(as.data.frame(resultats[[max_index]][[3]]), aes(x=seq_along(result
   theme_bw() +
   xlab("Itération") +
   ylab(expression(sigma))
-ggsave(plot=sig, filename="iteration_sigma.png", width=8, height=5)
+ggsave(plot=sig, filename="images/pareto_cauchy/iteration_sigma.png", width=8, height=5)
 
 ## alpha
 resultats[[max_index]][[7]]
@@ -245,6 +245,7 @@ alpha <- ggplot(as.data.frame(resultats[[max_index]][[7]]), aes(x=seq_along(resu
   theme_bw() +
   xlab("Itération") +
   ylab(expression(alpha))
+ggsave(plot=alpha, filename="images/pareto_cauchy/iteration_alpha.png", width=8, height=5)
 
 
 ## pi1
@@ -275,12 +276,11 @@ ggplot(as.data.frame(resultats[[max_index]][[6]]), aes(x=seq_along(resultats[[ma
 ## plot des proportions ensemble
 pi_123 <- data.frame(pi1 = resultats[[max_index]][[4]], pi2 = resultats[[max_index]][[5]], pi3 = resultats[[max_index]][[6]])
 pi_123 <- melt(pi_123)
-iteration <- c(1:length(pi_123[,1]))
+iteration <- c(1:length(resultats[[max_index]][[4]]))
 pi_123 <- cbind(pi_123, iteration)
 
 prop_plot <- ggplot(pi_123, aes(x = iteration, y = value, colour = variable)) +
   geom_point(aes(x=iteration, y=value), size = 2.5) +
-  #geom_point(aes(x=1, y=pi3[1]), color = "black", size = 1.5) +
   theme_bw() +
   xlab("Itération") +
   ylab("Proportion des groupes") +
@@ -291,7 +291,7 @@ prop_plot <- ggplot(pi_123, aes(x = iteration, y = value, colour = variable)) +
                                          colour ="#909090")) +
   theme(legend.title = element_blank())
 
-ggsave(plot=prop_plot, filename="prop_plot.png", width=8, height=6)
+ggsave(plot=prop_plot, filename="images/pareto_cauchy/prop_plot.png", width=8, height=6)
 
 
 
@@ -347,6 +347,7 @@ graph_groupes_2_3 <- ggplot(sum_gene_df %>% filter(nb_transcrit > 300)%>%filter(
   theme(plot.title = element_text(face = "bold",size = 13, hjust = 0, vjust = 0))
 
 graph_groupes_2_3
+ggsave(plot=graph_groupes_2_3, filename="images/pareto_cauchy/graph_groupes_2_3.png", width=8, height=6)
 
 
 ## Graphique pour le groupe 1
@@ -357,7 +358,7 @@ melange_groupe_1 <- function(x){
 
 graph_groupes_1 <- ggplot(sum_gene_df %>% filter(nb_transcrit < 25), aes(x = nb_transcrit))+
   geom_histogram(aes(y = ..density.., color = "Données"), position = "identity", bins = 25, fill = "#75D7FF")+
-  stat_function(fun = melange_groupe_1, aes(color = 'Premier group'), size = 1.1)+
+  stat_function(fun = melange_groupe_1, aes(color = "Premier groupe"), size = 1.1)+
   theme_bw()+
   ylim(0,0.9) +
   scale_color_manual(name = "Distributions",
@@ -375,7 +376,7 @@ graph_groupes_1 <- ggplot(sum_gene_df %>% filter(nb_transcrit < 25), aes(x = nb_
   theme(plot.title = element_text(face = "bold",size = 13, hjust = 0, vjust = 0))
 
 graph_groupes_1
-
+ggsave(plot=graph_groupes_1, filename="images/pareto_cauchy/graph_groupes_1.png", width=8, height=6)
 
 
 ################################################################

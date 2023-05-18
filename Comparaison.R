@@ -225,7 +225,7 @@ time <- resultats_finaux[2, , , , ]
 for_boxplot <- melt(time, varnames = c("taille_echantillon", "nbre_repetition", "algorithmes", "nbre_random_start"))
 
 ## Le ggplot
-plot_temps <- ggplot(data = for_boxplot) +
+graph_comparaison_performance <- ggplot(data = for_boxplot) +
   geom_boxplot(aes(x = factor(taille_echantillon), y = value, fill = factor(algorithmes))) +
   scale_x_discrete(breaks = 1:length(taille_echantillon), labels = taille_echantillon) +
   scale_y_continuous (trans='log10') +
@@ -242,5 +242,7 @@ plot_temps <- ggplot(data = for_boxplot) +
   ) +
   theme_bw()
 
-plot_temps
+graph_comparaison_performance
+ggsave(plot=graph_comparaison_performance, filename="images/graph_comparaison_performance.png", width=8, height=6)
+
 

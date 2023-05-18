@@ -351,7 +351,6 @@ ggsave(plot=graph_groupes_2_3, filename="images/pareto_cauchy/graph_groupes_2_3.
 
 
 ## Graphique pour le groupe 1
-
 melange_groupe_1 <- function(x){
   pi1_hat*dpareto(x, k = alpha_hat, xmin = 1)
 }
@@ -379,6 +378,23 @@ graph_groupes_1
 ggsave(plot=graph_groupes_1, filename="images/pareto_cauchy/graph_groupes_1.png", width=8, height=6)
 
 
+## Nuage de points issus d'une simulation
+taille_echantillon <- 350000
+echantillon_hat <- c(round(rpareto(taille_echantillon*pi1_hat, k = alpha_hat, xmin = 1)), round(rcauchy(taille_echantillon*pi2_hat, location = mu_hat, scale = sigma_hat)), round(rcauchy(taille_echantillon*pi3_hat, location = 2*mu_hat, scale = sqrt(2)*sigma_hat)))
+echantillon_hat <- as.data.frame(cbind(echantillon_hat, c(rep(1, taille_echantillon*pi1_hat), rep(2, taille_echantillon*pi2_hat), rep(3, taille_echantillon*pi3_hat))))
+colnames(echantillon_hat) <- c("echantillon", "groupe")
+echantillon_hat <- echantillon_hat[which(echantillon_hat$echantillon > 0),]
+echantillon_hat <- echantillon_hat[sample(nrow(echantillon_hat)),]
+
+nuage_points_simulation <- ggplot(echantillon_hat, aes(x = seq_along(echantillon), y = echantillon)) +
+  geom_point(shape = '.') +
+  scale_y_log10(limits = c(NA, 10^5)) +
+  theme_bw() +
+  ggtitle("Nuage de points d'une simulation") +
+  xlab("Index") + ylab("Nombre de transcrits")
+
+nuage_points_simulation
+ggsave(plot=nuage_points_simulation, filename="images/pareto_cauchy/nuage_points_simulation.png", width=6, height=6)
 ################################################################
 ##----------------------Classification------------------------##
 ################################################################

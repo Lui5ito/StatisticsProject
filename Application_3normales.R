@@ -222,7 +222,7 @@ saveRDS(resultats, file = "resultats_3normales.RData")
 ##--------------------------------RESULTATS-----------------------------------##
 ################################################################################
 
-resultats <- readRDS("resultats_3normales.RData")
+resultats <- readRDS("Resultats/resultats_3normales.RData")
 
 ## On veut maintenant récupérer le meilleur des random starts, celui qui a la log-vraisemblance complétée la plus élevée.
 max_index <- 1
@@ -242,12 +242,12 @@ for (i in 2:length(resultats)){
 
 ## log-vraisemblance complétée
 resultats[[max_index]][[1]] 
-vrai <- ggplot(as.data.frame(resultats[[max_index]][[1]][1:16]), aes(x=seq_along(resultats[[max_index]][[1]][1:16]), y=resultats[[max_index]][[1]][1:16])) +
+lvc <- ggplot(as.data.frame(resultats[[max_index]][[1]][1:16]), aes(x=seq_along(resultats[[max_index]][[1]][1:16]), y=resultats[[max_index]][[1]][1:16])) +
   geom_point(color = "#21ADE5", size = 2.5) +
   theme_bw() +
   xlab("Itération") +
   ylab("log-vraisemblance complétée")
-ggsave(plot=vrai, filename="iteration_lvc.png", width=8, height=5)
+ggsave(plot=lvc, filename="images/3normales/iteration_lvc.png", width=8, height=5)
 
 ## lambda
 resultats[[max_index]][[2]]
@@ -256,7 +256,7 @@ lamb <- ggplot(as.data.frame(resultats[[max_index]][[2]]), aes(x=seq_along(resul
   theme_bw() +
   xlab("Itération") +
   ylab(expression(lambda))
-ggsave(plot=lamb, filename="iteration_lambda.png", width=8, height=5)
+ggsave(plot=lamb, filename="images/3normales/iteration_lambda.png", width=8, height=5)
 
 ## mu
 resultats[[max_index]][[3]]
@@ -265,7 +265,7 @@ mu <- ggplot(as.data.frame(resultats[[max_index]][[3]]), aes(x=seq_along(resulta
   theme_bw() +
   xlab("Itération") +
   ylab(expression(mu))
-ggsave(plot=mu, filename="iteration_mu.png", width=8, height=5)
+ggsave(plot=mu, filename="images/3normales/iteration_mu.png", width=8, height=5)
 
 ## sigma
 resultats[[max_index]][[4]] ## pour sigma
@@ -274,7 +274,7 @@ sig <- ggplot(as.data.frame(resultats[[max_index]][[4]]), aes(x=seq_along(result
   theme_bw() +
   xlab("Itération") +
   ylab(expression(sigma))
-ggsave(plot=sig, filename="iteration_sigma.png", width=8, height=5)
+ggsave(plot=sig, filename="images/3normales/iteration_sigma.png", width=8, height=5)
 
 ## alpha
 resultats[[max_index]][[9]]
@@ -283,6 +283,7 @@ alpha <- ggplot(as.data.frame(resultats[[max_index]][[9]]), aes(x=seq_along(resu
   theme_bw() +
   xlab("Itération") +
   ylab(expression(alpha))
+ggsave(plot=alpa, filename="images/3normales/iteration_alpha.png", width=8, height=5)
 
 ## beta
 resultats[[max_index]][[10]]
@@ -291,6 +292,7 @@ beta <- ggplot(as.data.frame(resultats[[max_index]][[10]]), aes(x=seq_along(resu
   theme_bw() +
   xlab("Itération") +
   ylab(expression(beta))
+ggsave(plot=beta, filename="images/3normales/iteration_beta.png", width=8, height=5)
 
 ## pi1
 resultats[[max_index]][[5]]
@@ -325,24 +327,24 @@ ggplot(as.data.frame(resultats[[max_index]][[8]]), aes(x=seq_along(resultats[[ma
   ylab(expression(pi[4]))
 
 ## plot des proportions ensemble
-super <- data.frame(pi1 = resultats[[max_index]][[5]], pi2 = resultats[[max_index]][[6]], pi3 = resultats[[max_index]][[7]], pi4 = resultats[[max_index]][[8]])
-super <- melt(super)
-iteration <- c(1:20)
-super <- cbind(super, iteration)
-propplot <- ggplot(super, aes(x = iteration, y = value, colour = variable)) +
+pi_1234 <- data.frame(pi1 = resultats[[max_index]][[5]], pi2 = resultats[[max_index]][[6]], pi3 = resultats[[max_index]][[7]], pi4 = resultats[[max_index]][[8]])
+pi_1234 <- melt(pi_1234)
+iteration <- c(1:length(resultats[[max_index]][[8]]))
+pi_1234 <- cbind(pi_1234, iteration)
+prop_plot <- ggplot(pi_1234, aes(x = iteration, y = value, colour = variable)) +
   geom_point(aes(x=iteration, y=value), size = 2.5) +
   #geom_point(aes(x=1, y=pi3[1]), color = "black", size = 1.5) +
   theme_bw() +
   xlab("Itération") +
   ylab("Proportion des groupes") +
-  scale_colour_manual(values=c("hotpink1", "red", "darkgreen", "yellow"), labels = c("Groupe 1", "Groupe 2", "Groupe 3")) +
+  scale_colour_manual(values=c("hotpink1", "red", "darkgreen", "yellow"), labels = c("Groupe 1", "Groupe 2", "Groupe 3", "Groupe 4")) +
   theme(legend.position="top", legend.box = "horizontal") +
   theme(legend.background = element_rect(fill="white",
                                          size=0.5, linetype="solid", 
                                          colour ="#909090")) +
   theme(legend.title = element_blank())
 
-ggsave(plot=propplot, filename="propplot.png", width=8, height=6)
+ggsave(plot=prop_plot, filename="images/3normales/prop_plot.png", width=8, height=6)
 
 
 
@@ -394,6 +396,9 @@ graph_groupe_1 <- ggplot(proportion_25, aes(x = nb_transcrit)) +
 
 graph_groupe_1
 
+ggsave(plot=graph_groupe_1, filename="images/3normales/graph_groupe_1.png", width=8, height=6)
+
+
 ## Graphique pour les groupes 2 et 3
 melange_groupe_2_3 <- function(x){
   (pi2_hat/(pi2_hat+pi3_hat)*dnorm(x, mean = mu_hat, sd = sigma_hat) + pi3_hat/(pi2_hat+pi3_hat)*dnorm(x, mean = 2*mu_hat, sd = sqrt(2)*sigma_hat))
@@ -418,6 +423,9 @@ graph_groupes_2_3 <- ggplot(sum_gene_df %>% filter(nb_transcrit > 300)%>%filter(
   theme(plot.title = element_text(face = "bold",size = 13, hjust = 0, vjust = 0))
 
 graph_groupes_2_3
+
+ggsave(plot=graph_groupes_2_3, filename="images/3normales/graph_groupes_2_3.png", width=8, height=6)
+
 
 
 ################################################################

@@ -196,7 +196,7 @@ saveRDS(resultats_finaux, file = "resultats_comparaison.RData")
 ##--------------------------------RESULTATS-----------------------------------##
 ################################################################################
 
-resultats_finaux <- readRDS("resultats_comparaison.RData")
+resultats_finaux <- readRDS("Resultats/resultats_comparaison.RData")
 
 summary(resultats_finaux)
 
@@ -236,7 +236,7 @@ plot_temps <- ggplot(data = for_boxplot) +
   labs(fill = "") +
   theme(legend.position = "right") +
   scale_fill_manual(
-    values = c("#93dbff", "#66CCFF", "#51a3cc"),
+    values = c("#7592ff", "#ff9D75", "#70D3AF"),
     name = "Algorithmes", 
     labels = c("NelderMead", "Cobyla", "Bobyqa")
   ) +

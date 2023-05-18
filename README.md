@@ -11,7 +11,7 @@ Il comporte tous les modèles mis en place ainsi que la comparaison des algorith
 Il comporte les fichiers .RData des résultats des algorithmes EM pour chaque modèle. En effet, chaque algorithme EM mets beaucoup de temps à tourner. Les résultats sont simplement accessible à partir de ces fichiers.
 
 ## Dossier 'images'
-Ce dossier contient les ggplot sortie pour chaque modèle.
+Ce dossier contient les ggplot de chaque modèle.
 
 ## Dossier 'Supports'
 Ici sont disponible les rapport, presentation et poster de notre projet statistique.

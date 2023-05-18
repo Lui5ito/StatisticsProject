@@ -192,7 +192,7 @@ saveRDS(resultats, file = "resultats_poisson_normales.RData")
 ##--------------------------------RESULTATS-----------------------------------##
 ################################################################################
 
-resultats <- readRDS("resultats_poisson_normales.RData")
+resultats <- readRDS("Resultats/resultats_poisson_normales.RData")
 
 ## On veut maintenant récupérer le meilleur des random starts, celui qui a la log-vraisemblance complétée la plus élevée.
 max_index <- 1
@@ -212,12 +212,12 @@ for (i in 2:length(resultats)){
 
 ## log-vraisemblance complétée
 resultats[[max_index]][[1]] 
-vrai <- ggplot(as.data.frame(resultats[[max_index]][[1]][1:16]), aes(x=seq_along(resultats[[max_index]][[1]][1:16]), y=resultats[[max_index]][[1]][1:16])) +
+lvc <- ggplot(as.data.frame(resultats[[max_index]][[1]][1:16]), aes(x=seq_along(resultats[[max_index]][[1]][1:16]), y=resultats[[max_index]][[1]][1:16])) +
   geom_point(color = "#21ADE5", size = 2.5) +
   theme_bw() +
   xlab("Itération") +
   ylab("log-vraisemblance complétée")
-ggsave(plot=vrai, filename="iteration_lvc.png", width=8, height=5)
+ggsave(plot=lvc, filename="images/poisson_normales/iteration_lvc.png", width=8, height=5)
 
 ## lambda
 resultats[[max_index]][[2]]
@@ -226,7 +226,7 @@ iteration_lambda <- ggplot(as.data.frame(resultats[[max_index]][[2]]), aes(x=seq
   theme_bw() +
   xlab("Itération") +
   ylab(expression(lambda))
-ggsave(plot=iteration_lambda, filename="iteration_lambda.png", width=8, height=5)
+ggsave(plot=iteration_lambda, filename="images/poisson_normales/iteration_lambda.png", width=8, height=5)
 
 ## mu
 resultats[[max_index]][[3]]
@@ -235,7 +235,7 @@ iteration_mu <- ggplot(as.data.frame(resultats[[max_index]][[3]]), aes(x=seq_alo
   theme_bw() +
   xlab("Itération") +
   ylab(expression(mu))
-ggsave(plot=iteration_mu, filename="iteration_mu.png", width=8, height=5)
+ggsave(plot=iteration_mu, filename="images/poisson_normales/iteration_mu.png", width=8, height=5)
 
 ## sigma
 resultats[[max_index]][[4]]
@@ -244,7 +244,7 @@ iteration_sigma <- ggplot(as.data.frame(resultats[[max_index]][[4]]), aes(x=seq_
   theme_bw() +
   xlab("Itération") +
   ylab(expression(sigma))
-ggsave(plot=iteration_sigma, filename="iteration_sigma.png", width=8, height=5)
+ggsave(plot=iteration_sigma, filename="images/poisson_normales/iteration_sigma.png", width=8, height=5)
 
 
 ## pi1
@@ -274,9 +274,10 @@ ggplot(as.data.frame(resultats[[max_index]][[7]]), aes(x=seq_along(resultats[[ma
 
 ## graphique des proportions ensemble
 pi_123 <- data.frame(pi1 = resultats[[max_index]][[5]], pi2 = resultats[[max_index]][[6]], pi3 = resultats[[max_index]][[7]])
-pi_123 <- melt(super)
-iteration <- c(1:length(pi_123[,1]))
+pi_123 <- melt(pi_123)
+iteration <- c(1:length(resultats[[max_index]][[5]]))
 pi_123 <- cbind(pi_123, iteration)
+
 prop_plot <- ggplot(pi_123, aes(x = iteration, y = value, colour = variable)) +
   geom_point(aes(x=iteration, y=value), size = 2.5) +
   theme_bw() +
@@ -288,7 +289,8 @@ prop_plot <- ggplot(pi_123, aes(x = iteration, y = value, colour = variable)) +
                                          size=0.5, linetype="solid", 
                                          colour ="#909090")) +
   theme(legend.title = element_blank())
-ggsave(plot=prop_plot, filename="prop_plot.png", width=8, height=6)
+
+ggsave(plot=prop_plot, filename="images/poisson_normales/prop_plot.png", width=8, height=6)
 
 
 ################################################################
@@ -312,12 +314,24 @@ melange_groupe_2_3 <- function(x){
   (pi2_hat/(pi2_hat+pi3_hat)*dnorm(x, mean = mu_hat, sd = sigma_hat) + pi3_hat/(pi2_hat+pi3_hat)*dnorm(x, mean = 2*mu_hat, sd = sqrt(2)*sigma_hat))
 }
 
+melange_groupe_2 <- function(x){
+  pi2_hat/(pi2_hat+pi3_hat)*dcauchy(x, location = mu_hat, scale = sigma_hat)
+}
+
+melange_groupe_3 <- function(x){
+  pi3_hat/(pi2_hat+pi3_hat)*dcauchy(x, location = 2*mu_hat, scale = sqrt(2)*sigma_hat)
+}
+
 graph_groupes_2_3 <- ggplot(sum_gene_df %>% filter(nb_transcrit > 300)%>%filter(nb_transcrit < 20000), aes(x = nb_transcrit))+
   geom_histogram(aes(y = ..density.., color = "Données"), position = "identity", bins = 100, fill = "#75D7FF")+
+  stat_function(fun = melange_groupe_2, aes(color = 'Deuxième groupe'), size = 1)+
+  stat_function(fun = melange_groupe_3, aes(color = 'Troisième groupe'), size = 1)+
   stat_function(fun = melange_groupe_2_3, aes(color = 'Mélange'), size = 1.1)+
   theme_bw()+
   scale_color_manual(name = "Distributions",
-                     values = c("Mélange" = 'black',
+                     values = c("Deuxième groupe" = "red",
+                                "Troisième groupe" = "darkgreen",
+                                "Mélange" = 'black',
                                 "Données" =  "#65C6ED"))+
   theme(legend.background = element_rect(fill="white",
                                          size=1, linetype="solid",
@@ -331,6 +345,8 @@ graph_groupes_2_3 <- ggplot(sum_gene_df %>% filter(nb_transcrit > 300)%>%filter(
   theme(plot.title = element_text(face = "bold",size = 13, hjust = 0, vjust = 0))
 
 graph_groupes_2_3
+ggsave(plot=graph_groupes_2_3, filename="images/poisson_normales/graph_groupes_2_3.png", width=8, height=6)
+
 
 ## Graphique pour le groupe 1
 ## Ce graph est un peu différent car il fait intervenir une fonction de masse
@@ -360,6 +376,8 @@ graph_groupe_1 <- ggplot(proportion_25, aes(x = nb_transcrit)) +
   theme(plot.title = element_text(face = "bold",size = 13, hjust = 0, vjust = 0))
 
 graph_groupe_1
+ggsave(plot=graph_groupe_1, filename="images/poisson_normales/graph_groupe_1.png", width=8, height=6)
+
 
 ################################################################
 ##----------------------Classification------------------------##

@@ -243,12 +243,12 @@ for (i in 2:length(resultats)){
 
 ## log-vraisemblance complétée
 resultats[[max_index]][[1]] 
-vrai <- ggplot(as.data.frame(resultats[[max_index]][[1]][1:16]), aes(x=seq_along(resultats[[max_index]][[1]][1:16]), y=resultats[[max_index]][[1]][1:16])) +
+lvc <- ggplot(as.data.frame(resultats[[max_index]][[1]][1:16]), aes(x=seq_along(resultats[[max_index]][[1]][1:16]), y=resultats[[max_index]][[1]][1:16])) +
   geom_point(color = "#21ADE5", size = 2.5) +
   theme_bw() +
   xlab("Itération") +
   ylab("log-vraisemblance complétée")
-ggsave(plot=vrai, filename="iteration_lvc.png", width=8, height=5)
+ggsave(plot=lvc, filename="images/poisson_nbinom_normales/iteration_lvc.png", width=8, height=5)
 
 ## lambda
 resultats[[max_index]][[2]]
@@ -257,7 +257,7 @@ lamb <- ggplot(as.data.frame(resultats[[max_index]][[2]]), aes(x=seq_along(resul
   theme_bw() +
   xlab("Itération") +
   ylab(expression(lambda))
-ggsave(plot=lamb, filename="iteration_lambda.png", width=8, height=5)
+ggsave(plot=lamb, filename="images/poisson_nbinom_normales/iteration_lambda.png", width=8, height=5)
 
 ## mu
 resultats[[max_index]][[3]]
@@ -266,7 +266,7 @@ mu <- ggplot(as.data.frame(resultats[[max_index]][[3]]), aes(x=seq_along(resulta
   theme_bw() +
   xlab("Itération") +
   ylab(expression(mu))
-ggsave(plot=mu, filename="iteration_mu.png", width=8, height=5)
+ggsave(plot=mu, filename="images/poisson_nbinom_normales/iteration_mu.png", width=8, height=5)
 
 ## sigma
 resultats[[max_index]][[4]] ## pour sigma
@@ -275,7 +275,7 @@ sig <- ggplot(as.data.frame(resultats[[max_index]][[4]]), aes(x=seq_along(result
   theme_bw() +
   xlab("Itération") +
   ylab(expression(sigma))
-ggsave(plot=sig, filename="iteration_sigma.png", width=8, height=5)
+ggsave(plot=sig, filename="images/poisson_nbinom_normales/iteration_sigma.png", width=8, height=5)
 
 ## alpha
 resultats[[max_index]][[9]]
@@ -284,6 +284,8 @@ alpha <- ggplot(as.data.frame(resultats[[max_index]][[9]]), aes(x=seq_along(resu
   theme_bw() +
   xlab("Itération") +
   ylab(expression(alpha))
+ggsave(plot=alpha, filename="images/poisson_nbinom_normales/iteration_alpha.png", width=8, height=5)
+
 
 ## beta
 resultats[[max_index]][[10]]
@@ -292,6 +294,8 @@ beta <- ggplot(as.data.frame(resultats[[max_index]][[10]]), aes(x=seq_along(resu
   theme_bw() +
   xlab("Itération") +
   ylab(expression(beta))
+ggsave(plot=beta, filename="images/poisson_nbinom_normales/iteration_beta.png", width=8, height=5)
+
 
 ## pi1
 resultats[[max_index]][[5]]
@@ -328,22 +332,21 @@ ggplot(as.data.frame(resultats[[max_index]][[8]]), aes(x=seq_along(resultats[[ma
 ## plot des proportions ensemble
 pi_1234 <- data.frame(pi1 = resultats[[max_index]][[5]], pi2 = resultats[[max_index]][[6]], pi3 = resultats[[max_index]][[7]], pi4 = resultats[[max_index]][[8]])
 pi_1234 <- melt(pi_1234)
-iteration <- c(1:length(pi_1234[,1]))
+iteration <- c(1:length(resultats[[max_index]][[5]]))
 pi_1234 <- cbind(pi_1234, iteration)
-propplot <- ggplot(pi_1234, aes(x = iteration, y = value, colour = variable)) +
+prop_plot <- ggplot(pi_1234, aes(x = iteration, y = value, colour = variable)) +
   geom_point(aes(x=iteration, y=value), size = 2.5) +
-  #geom_point(aes(x=1, y=pi3[1]), color = "black", size = 1.5) +
   theme_bw() +
   xlab("Itération") +
   ylab("Proportion des groupes") +
-  scale_colour_manual(values=c("hotpink1", "red", "darkgreen", "yellow"), labels = c("Groupe 1", "Groupe 2", "Groupe 3")) +
+  scale_colour_manual(values=c("hotpink1", "red", "darkgreen", "yellow"), labels = c("Groupe 1", "Groupe 2", "Groupe 3", "Groupe 4")) +
   theme(legend.position="top", legend.box = "horizontal") +
   theme(legend.background = element_rect(fill="white",
                                          size=0.5, linetype="solid", 
                                          colour ="#909090")) +
   theme(legend.title = element_blank())
 
-ggsave(plot=propplot, filename="propplot.png", width=8, height=6)
+ggsave(plot=prop_plot, filename="images/poisson_nbinom_normales/prop_plot.png", width=8, height=6)
 
 ################################################################
 ##------------------------THETA HAT---------------------------##
@@ -373,7 +376,7 @@ proportion_25 <- pop_classe_avant %>% filter(nb_transcrit < 25)
 proportion_25$poisson <- exp(dpois(1:24, lambda_hat, log = TRUE)  - logspace.sub(0, -lambda_hat))
 proportion_25$nbinom <- exp(dnbinom(1:24, size = alpha_hat, prob = beta_hat, log = TRUE) - logspace.sub(0, pnbinom(0, size = alpha_hat, prob = beta_hat, log.p = TRUE)))
 
-graph_groupe_2_4 <- ggplot(proportion_25, aes(x = nb_transcrit)) +
+graph_groupe_1_4 <- ggplot(proportion_25, aes(x = nb_transcrit)) +
   geom_col(aes(x = nb_transcrit, y = proportion),just = 0.5, width = 0.99, color = "#65C6ED", fill = "#75D7FF") +
   theme_bw()+
   geom_point(aes(y = poisson*pi1_hat, color = "Fonction de masse de la loi de Poisson"), size=1.5) +
@@ -387,23 +390,37 @@ graph_groupe_2_4 <- ggplot(proportion_25, aes(x = nb_transcrit)) +
                                          colour ="#909090")) +
   theme(legend.position = c(0.75, 0.9),
         legend.direction = "vertical")+
-  theme(legend.title = element_blank())
+  theme(legend.title = element_blank())+
   labs(title = "Fonctions de masse de la loi de Poisson et de la loi binomiale négative superposées aux données réelles") +
   theme(plot.title = element_text(face = "bold",size = 13, hjust = 0, vjust = 0))
 
-graph_groupe_2_4
+graph_groupe_1_4
+ggsave(plot=graph_groupe_1_4, filename="images/poisson_nbinom_normales/graph_groupe_1_4.png", width=8, height=6)
+
 
 ## Graphique des groupes 2 et 3
 melange_groupe_2_3 <- function(x){
   (pi2_hat/(pi2_hat+pi3_hat)*dnorm(x, mean = mu_hat, sd = sigma_hat) + pi3_hat/(pi2_hat+pi3_hat)*dnorm(x, mean = 2*mu_hat, sd = sqrt(2)*sigma_hat))
 }
 
+melange_groupe_2 <- function(x){
+  pi2_hat/(pi2_hat+pi3_hat)*dcauchy(x, location = mu_hat, scale = sigma_hat)
+}
+
+melange_groupe_3 <- function(x){
+  pi3_hat/(pi2_hat+pi3_hat)*dcauchy(x, location = 2*mu_hat, scale = sqrt(2)*sigma_hat)
+}
+
 graph_groupes_2_3 <- ggplot(sum_gene_df %>% filter(nb_transcrit > 300)%>%filter(nb_transcrit < 20000), aes(x = nb_transcrit))+
   geom_histogram(aes(y = ..density.., color = "Données"), position = "identity", bins = 100, fill = "#75D7FF")+
+  stat_function(fun = melange_groupe_2, aes(color = 'Deuxième groupe'), size = 1)+
+  stat_function(fun = melange_groupe_3, aes(color = 'Troisième groupe'), size = 1)+
   stat_function(fun = melange_groupe_2_3, aes(color = 'Mélange'), size = 1.1)+
   theme_bw()+
   scale_color_manual(name = "Distributions",
-                     values = c("Mélange" = 'black',
+                     values = c("Deuxième groupe" = "red",
+                                "Troisième groupe" = "darkgreen",
+                                "Mélange" = 'black',
                                 "Données" =  "#65C6ED"))+
   theme(legend.background = element_rect(fill="white",
                                          size=1, linetype="solid",
@@ -417,6 +434,8 @@ graph_groupes_2_3 <- ggplot(sum_gene_df %>% filter(nb_transcrit > 300)%>%filter(
   theme(plot.title = element_text(face = "bold",size = 13, hjust = 0, vjust = 0))
 
 graph_groupes_2_3
+ggsave(plot=graph_groupes_2_3, filename="images/poisson_nbinom_normales/graph_groupes_2_3.png", width=8, height=6)
+
 
 ################################################################
 ##----------------------Classification------------------------##

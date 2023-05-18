@@ -188,12 +188,12 @@ resultats <- foreach (i=1:nbre_random_start, .packages=c("DPQ", "nloptr", "distr
 toc()
 stopCluster(nbre_coeurs_voulu)
 summary(resultats)
-saveRDS(resultats, file = "resultats_application_pareto_cauchy.RData")
+saveRDS(resultats, file = "resultats_pareto_cauchy.RData")
 ################################################################################
 ##--------------------------------RESULTATS-----------------------------------##
 ################################################################################
 
-resultats <- readRDS("resultats_application_pareto_cauchy.RData")
+resultats <- readRDS("Ok/Resultats/resultats_pareto_cauchy.RData")
 
 ## On veut maintenant récupérer le meilleur des random starts, celui qui a la log-vraisemblance complétée la plus élevée.
 max_index <- 1

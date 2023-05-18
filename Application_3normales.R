@@ -283,7 +283,7 @@ alpha <- ggplot(as.data.frame(resultats[[max_index]][[9]]), aes(x=seq_along(resu
   theme_bw() +
   xlab("Itération") +
   ylab(expression(alpha))
-ggsave(plot=alpa, filename="images/3normales/iteration_alpha.png", width=8, height=5)
+ggsave(plot=alpha, filename="images/3normales/iteration_alpha.png", width=8, height=5)
 
 ## beta
 resultats[[max_index]][[10]]

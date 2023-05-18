@@ -24,7 +24,7 @@ ggplot(echantillon_hat, aes(x = seq_along(echantillon), y = echantillon, color =
 
 ggplot(sum_gene_df, aes(x = seq_along(nb_transcrit), y = nb_transcrit)) +
   geom_point(shape = '.') +
-  scale_y_continuous(trans = 'log10') +
+  scale_y_log10(limits = c(1, 1e5)) +
   theme_bw() +
   ggtitle("Scatter plot,\n and a first determination of the groups") +
   xlab("Index") + ylab("Number of transcript")
